@@ -11,17 +11,29 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "SwiftlyFetch",
-            targets: ["SwiftlyFetch"]
+            name: "RAGCore",
+            targets: ["RAGCore"]
+        ),
+        .library(
+            name: "RAGKit",
+            targets: ["RAGKit"]
         ),
     ],
     targets: [
         .target(
-            name: "SwiftlyFetch"
+            name: "RAGCore"
+        ),
+        .target(
+            name: "RAGKit",
+            dependencies: ["RAGCore"]
         ),
         .testTarget(
-            name: "SwiftlyFetchTests",
-            dependencies: ["SwiftlyFetch"]
+            name: "RAGCoreTests",
+            dependencies: ["RAGCore"]
+        ),
+        .testTarget(
+            name: "RAGKitTests",
+            dependencies: ["RAGKit", "RAGCore"]
         ),
     ],
     swiftLanguageModes: [.v6]
