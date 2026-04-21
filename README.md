@@ -16,7 +16,7 @@ An Apple-first Swift Package for local retrieval, document chunking, embeddings,
 
 ### Status
 
-This project is in early development.
+`v0.1.0` is the first retrieval-first package release. The current shipped surface covers local document ingestion for plain text and markdown, chunking, embeddings, in-memory indexing, metadata filtering, retrieval, and deterministic context assembly.
 
 ### What This Project Is
 
@@ -75,6 +75,14 @@ Current defaults:
 - `naturalLanguageDefault()` uses the Apple Natural Language backend on supported platforms
 - metadata filtering supports explicit exclusions, ordered comparisons for `int`, `double`, and `date`, plus case-insensitive `startsWith` and `endsWith` string matching
 - `makeContext(...)` suppresses redundant same-document chunk text, groups annotated output by document, and skips annotated sections that only have room for labels
+
+Supported today:
+
+- build a local knowledge base from plain text and markdown documents
+- use deterministic hashing embeddings for tests, previews, and fully local examples
+- use Apple Natural Language embeddings for on-device semantic retrieval on supported platforms
+- narrow retrieval with typed metadata filters
+- turn ranked search results into plain or annotated context text for downstream UI or model consumers
 
 ## Development
 
