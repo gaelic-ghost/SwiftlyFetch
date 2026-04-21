@@ -76,19 +76,19 @@ In Progress
 - [x] Add an opt-in `RAGKitIntegrationTests` target for real `NaturalLanguageEmbedder` coverage without making the default suite depend on Apple assets.
 - [ ] Strengthen the real `NaturalLanguageEmbedder` assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness.
 - [ ] Tighten metadata filtering and context assembly only as far as needed for a clean retrieval-first v1.
+- [ ] Add CI checks that run `swift build` and `swift test` on the default macOS path without making Apple-asset integration coverage mandatory.
 - [x] Replace the README overview placeholder text with settled project language.
 
 ### Exit Criteria
 
 - [ ] The package has a clean default local retrieval flow with both deterministic coverage and verified Apple-backed embedding behavior.
 - [x] Markdown-aware chunking is available for the main ingestion surface.
-- [ ] Maintainer docs clearly describe the current architecture and v1 boundaries.
+- [x] Maintainer docs clearly describe the current architecture and v1 boundaries.
 
 ## Backlog Candidates
 
 - [ ] Decide how the future `FetchCore` and `FetchKit` family should relate to the eventual umbrella `SwiftlyFetch` product without distorting the current retrieval-first package scope.
-- [ ] Add opt-in Apple integration tests that exercise real `NLContextualEmbedding` behavior and asset handling.
-- [ ] Add CI checks that prove the package stays green on the intended supported toolchain.
+- [ ] Add an optional separate CI lane for Apple-asset integration coverage once a reliable asset-enabled runner strategy exists.
 
 ## History
 
