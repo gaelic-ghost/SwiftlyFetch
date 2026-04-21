@@ -78,7 +78,7 @@ Current defaults:
 
 ### Setup
 
-1. Install a Swift 6.3-era toolchain or newer.
+1. Install a Swift 6.1-era toolchain or newer.
 2. Clone the repository.
 3. Run `swift build` once to resolve the package and confirm the local toolchain matches the manifest.
 
