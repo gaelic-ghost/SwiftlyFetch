@@ -76,7 +76,7 @@ In Progress
 - [x] Add an opt-in `RAGKitIntegrationTests` target for real `NaturalLanguageEmbedder` coverage without making the default suite depend on Apple assets.
 - [ ] Strengthen the real `NaturalLanguageEmbedder` assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness.
 - [ ] Tighten metadata filtering and context assembly only as far as needed for a clean retrieval-first v1.
-- [ ] Replace the README overview placeholder text with settled project language.
+- [x] Replace the README overview placeholder text with settled project language.
 
 ### Exit Criteria
 
@@ -98,3 +98,4 @@ In Progress
 - Refactored the package into `RAGCore` and `RAGKit` and added the first retrieval implementations plus deterministic tests.
 - Synchronized `AGENTS.md` into the broader canonical maintainer shape while preserving the Swift package workflow section.
 - Added the heading-aware markdown chunker, default markdown-aware chunking, and an opt-in Natural Language integration test target.
+- Marked the README product wording work complete.

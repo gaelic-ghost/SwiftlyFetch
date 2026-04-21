@@ -154,7 +154,6 @@ Still intentionally incomplete:
 - stronger real-asset Natural Language assertions beyond basic vector-shape coverage
 - richer retrieval-default tuning around metadata filtering and context assembly
 - more markdown chunker coverage for edge cases and future evolution
-- settled public README/product wording
 
 ## v1 Scope
 
