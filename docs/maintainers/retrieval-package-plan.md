@@ -152,7 +152,7 @@ Implemented today:
 Still intentionally incomplete:
 
 - more markdown chunker coverage for edge cases and future evolution
-- optional future retrieval-default refinements such as broader typed comparisons or further context rendering polish if real caller needs emerge
+- optional future retrieval-default refinements only if concrete caller needs emerge beyond the current exclusion, ordered-comparison, and grouped-context defaults
 
 ## v1 Scope
 
@@ -405,7 +405,7 @@ The first concrete implementation pass should happen in this order:
 8. Add opt-in integration tests for real Natural Language embedding behavior. Partially completed; the target exists and basic assertions are in place, but the semantic assertions should be strengthened.
 9. Add a heading-aware markdown chunker as the first major retrieval-quality improvement. Completed.
 10. Strengthen the real Natural Language integration assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness. Completed.
-11. Tighten retrieval defaults around metadata filtering and context assembly without widening the package into chat or generation concerns. Completed with explicit exclusion filters and smarter context assembly defaults.
+11. Tighten retrieval defaults around metadata filtering and context assembly without widening the package into chat or generation concerns. Completed with explicit exclusion filters, ordered typed comparisons, grouped annotated output, smarter duplicate suppression, and refined budget handling.
 12. Keep default CI focused on `swift build` and `swift test`, and treat Apple-asset integration coverage as a separate opt-in verification path until the runner and asset story are stable.
 
 That sequence matters because it gets a fully testable retrieval loop working before the repo takes on Apple asset-management complexity.
