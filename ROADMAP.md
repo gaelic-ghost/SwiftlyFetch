@@ -61,3 +61,4 @@ In Progress
 
 - Initial roadmap scaffold created.
 - Recorded the bootstrap foundation work for the first package setup pass.
+- Published the initial public GitHub repository and pushed the bootstrap commit.
