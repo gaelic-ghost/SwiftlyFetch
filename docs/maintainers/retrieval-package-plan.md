@@ -350,6 +350,7 @@ Current status:
 - the deterministic wrapper and knowledge-base tests are in place
 - the opt-in Natural Language integration target exists
 - the next testing improvement is stronger semantic assertions under real Apple assets, not just non-empty normalized vector checks
+- default CI should prove `swift build` and `swift test` on the ordinary macOS path, while Apple-asset integration coverage stays opt-in until a reliable asset-enabled runner story exists
 
 ## Package Structure Target
 
@@ -406,6 +407,7 @@ The first concrete implementation pass should happen in this order:
 9. Add a heading-aware markdown chunker as the first major retrieval-quality improvement. Completed.
 10. Strengthen the real Natural Language integration assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness.
 11. Tighten retrieval defaults around metadata filtering and context assembly without widening the package into chat or generation concerns.
+12. Keep default CI focused on `swift build` and `swift test`, and treat Apple-asset integration coverage as a separate opt-in verification path until the runner and asset story are stable.
 
 That sequence matters because it gets a fully testable retrieval loop working before the repo takes on Apple asset-management complexity.
 
@@ -440,14 +442,9 @@ If the package does that cleanly, it has a real foundation.
 
 ## Immediate Follow-Up Work
 
-The next planning-to-implementation step should be a package refactor plan that maps the current single `SwiftlyFetch` target into:
-
-- `RAGCore`
-- `RAGKit`
-- updated test targets
-- a staged migration path for examples and docs
-
-That follow-up should also decide whether the repository name `SwiftlyFetch` remains the marketing identity while the Swift module products become `RAGCore` and `RAGKit`, or whether product naming should be revised for better package clarity before implementation starts.
+- Strengthen the opt-in `NaturalLanguageEmbedder` integration test so it proves semantic retrieval behavior with a tiny corpus and ranking expectations, not just vector shape.
+- Keep GitHub Actions green on the default macOS path with explicit `swift build` and `swift test` coverage.
+- Use [retrieval-defaults-follow-up.md](./retrieval-defaults-follow-up.md) as the detailed scope note for the next metadata-filtering and context-assembly pass, and keep that pass retrieval-first rather than drifting into answer synthesis or query-language design.
 
 ## Open Questions
 

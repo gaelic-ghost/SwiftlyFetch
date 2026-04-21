@@ -1,4 +1,4 @@
-name: Validate Repo Maintenance
+name: Validate Package And Repo Maintenance
 
 on:
   pull_request:
@@ -11,5 +11,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Build package
+        run: swift build
+      - name: Run package tests
+        run: swift test
       - name: Run repo-maintenance validation
         run: bash scripts/repo-maintenance/validate-all.sh
