@@ -9,6 +9,7 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 - [Milestone Progress](#milestone-progress)
 - [Milestone 0: Foundation](#milestone-0-foundation)
 - [Milestone 1: Retrieval Defaults](#milestone-1-retrieval-defaults)
+- [Milestone 2: Post-v0.1.0 Refinement](#milestone-2-post-v010-refinement)
 - [Backlog Candidates](#backlog-candidates)
 - [History](#history)
 
@@ -25,7 +26,8 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 ## Milestone Progress
 
 - Milestone 0: Foundation - Completed
-- Milestone 1: Retrieval Defaults - In Progress
+- Milestone 1: Retrieval Defaults - Completed
+- Milestone 2: Post-v0.1.0 Refinement - Planned
 
 ## Milestone 0: Foundation
 
@@ -85,6 +87,30 @@ Completed
 - [x] Markdown-aware chunking is available for the main ingestion surface.
 - [x] Maintainer docs clearly describe the current architecture and v1 boundaries.
 
+## Milestone 2: Post-v0.1.0 Refinement
+
+### Status
+
+Planned
+
+### Scope
+
+- [ ] Deepen markdown chunker coverage around edge cases and future refinement work without widening ingestion scope beyond plain text and markdown.
+- [ ] Clarify the long-term package-family naming story around `SwiftlyFetch`, `FetchCore`, and `FetchKit` without distorting the current retrieval-first public surface.
+- [ ] Decide whether Apple-asset integration coverage should gain a separate CI lane once a reliable asset-enabled runner strategy exists.
+
+### Tickets
+
+- [ ] Add more edge-case tests for heading-aware markdown chunking and paragraph splitting behavior.
+- [ ] Record the package-family naming direction in maintainer docs before widening the public product story.
+- [ ] Evaluate a separate opt-in CI path for `RUN_NL_INTEGRATION_TESTS=1` instead of making the default suite depend on Apple assets.
+
+### Exit Criteria
+
+- [ ] The next chunking-quality improvements are covered deterministically and stay retrieval-first.
+- [ ] The package naming and future umbrella relationship are documented clearly enough to guide follow-on API decisions.
+- [ ] The team has a settled decision on whether asset-enabled integration coverage belongs in CI, and how.
+
 ## Backlog Candidates
 
 - [ ] Decide how the future `FetchCore` and `FetchKit` family should relate to the eventual umbrella `SwiftlyFetch` product without distorting the current retrieval-first package scope.
@@ -100,3 +126,4 @@ Completed
 - Added the heading-aware markdown chunker, default markdown-aware chunking, and an opt-in Natural Language integration test target.
 - Marked the README product wording work complete.
 - Strengthened the Apple-backed integration assertions, aligned CI with the supported Swift toolchain, and tightened retrieval defaults through richer metadata filters plus smarter grouped context assembly.
+- Marked the retrieval-defaults milestone complete, opened the post-`v0.1.0` refinement milestone, and prepared the first public release.
