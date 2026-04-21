@@ -1,4 +1,4 @@
-import NaturalLanguage
+@preconcurrency import NaturalLanguage
 import RAGCore
 
 enum AppleContextualEmbeddingBackendError: Error, Sendable {
