@@ -70,11 +70,21 @@ public actor KnowledgeBase {
         let results = try await search(query)
         var renderedSections: [String] = []
         var currentCharacterCount = 0
+        var lastIncludedDocumentID: DocumentID?
+        var lastIncludedComparisonText: String?
 
         for result in results {
             let section = render(result: result, style: style)
-            let separatorCount = renderedSections.isEmpty ? 0 : 2
-            let remainingBudget = remainingCharacters(for: budget, currentCharacterCount: currentCharacterCount, separatorCount: separatorCount)
+            let separator = separator(
+                for: result.chunk.documentID,
+                previousDocumentID: lastIncludedDocumentID,
+                hasRenderedSections: !renderedSections.isEmpty
+            )
+            let remainingBudget = remainingCharacters(
+                for: budget,
+                currentCharacterCount: currentCharacterCount,
+                separatorCount: separator.count
+            )
             guard remainingBudget != 0 else {
                 break
             }
@@ -84,9 +94,16 @@ public actor KnowledgeBase {
                 continue
             }
 
-            let sectionWithSeparator = renderedSections.isEmpty ? fittedSection : "\n\n\(fittedSection)"
+            let comparisonText = normalizedComparisonText(fittedSection)
+            if let lastIncludedComparisonText, lastIncludedComparisonText == comparisonText {
+                continue
+            }
+
+            let sectionWithSeparator = renderedSections.isEmpty ? fittedSection : "\(separator)\(fittedSection)"
             renderedSections.append(sectionWithSeparator)
             currentCharacterCount += sectionWithSeparator.count
+            lastIncludedDocumentID = result.chunk.documentID
+            lastIncludedComparisonText = comparisonText
 
             if !budget.allows(currentCharacterCount, adding: 0) {
                 break
@@ -134,6 +151,26 @@ public actor KnowledgeBase {
         case .unlimited:
             return nil
         }
+    }
+
+    private func separator(
+        for documentID: DocumentID,
+        previousDocumentID: DocumentID?,
+        hasRenderedSections: Bool
+    ) -> String {
+        guard hasRenderedSections else {
+            return ""
+        }
+
+        if previousDocumentID == documentID {
+            return "\n"
+        }
+
+        return "\n\n"
+    }
+
+    private func normalizedComparisonText(_ text: String) -> String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func fittedText(_ text: String, limit: Int?) -> String {

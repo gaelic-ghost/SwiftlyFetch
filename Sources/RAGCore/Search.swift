@@ -28,6 +28,7 @@ public indirect enum MetadataFilter: Hashable, Codable, Sendable {
     case hasKey(String)
     case equals(String, MetadataValue)
     case contains(String, String)
+    case not(MetadataFilter)
     case any([MetadataFilter])
     case all([MetadataFilter])
 
@@ -50,6 +51,8 @@ public indirect enum MetadataFilter: Hashable, Codable, Sendable {
                 return false
             }
             return value.localizedCaseInsensitiveContains(fragment)
+        case .not(let filter):
+            return !filter.matches(values)
         case .any(let filters):
             return filters.contains { $0.matches(values) }
         case .all(let filters):

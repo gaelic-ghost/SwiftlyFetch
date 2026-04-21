@@ -1,10 +1,12 @@
 # Retrieval Defaults Follow-Up
 
-Use this note to guide the next retrieval-quality pass after the current Natural Language verification and baseline CI work lands.
+Use this note to guide any future retrieval-quality pass after the current Natural Language verification, baseline CI work, and the first retrieval-defaults refinement have landed.
 
 ## Purpose
 
-The next package-improvement step after Apple-backed integration verification should be a narrow retrieval-defaults pass. The job is to make the package more useful for ordinary app-side retrieval without widening it into a larger query language, answer-generation layer, or orchestration surface.
+This package has already completed one retrieval-defaults refinement pass: `MetadataFilter.not(...)` now covers ordinary exclusion cases, and `makeContext(...)` now suppresses adjacent repeated chunk text while keeping same-document sections tighter than cross-document boundaries.
+
+Any next package-improvement step in this area should remain narrow. The job is still to make the package more useful for ordinary app-side retrieval without widening it into a larger query language, answer-generation layer, or orchestration surface.
 
 This is a durable scope note for v1 planning, not a mandate to build every idea listed here in one change.
 

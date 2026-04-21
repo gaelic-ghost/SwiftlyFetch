@@ -151,9 +151,8 @@ Implemented today:
 
 Still intentionally incomplete:
 
-- stronger real-asset Natural Language assertions beyond basic vector-shape coverage
-- richer retrieval-default tuning around metadata filtering and context assembly
 - more markdown chunker coverage for edge cases and future evolution
+- optional future retrieval-default refinements such as broader typed comparisons or further context rendering polish if real caller needs emerge
 
 ## v1 Scope
 
@@ -349,7 +348,7 @@ Current status:
 
 - the deterministic wrapper and knowledge-base tests are in place
 - the opt-in Natural Language integration target exists
-- the next testing improvement is stronger semantic assertions under real Apple assets, not just non-empty normalized vector checks
+- real Apple-backed integration coverage now checks semantic retrieval behavior rather than only non-empty normalized vectors
 - default CI should prove `swift build` and `swift test` on the ordinary macOS path, while Apple-asset integration coverage stays opt-in until a reliable asset-enabled runner story exists
 
 ## Package Structure Target
@@ -405,8 +404,8 @@ The first concrete implementation pass should happen in this order:
 7. Add tests that target the public wrapper while injecting a fake backend. Completed.
 8. Add opt-in integration tests for real Natural Language embedding behavior. Partially completed; the target exists and basic assertions are in place, but the semantic assertions should be strengthened.
 9. Add a heading-aware markdown chunker as the first major retrieval-quality improvement. Completed.
-10. Strengthen the real Natural Language integration assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness.
-11. Tighten retrieval defaults around metadata filtering and context assembly without widening the package into chat or generation concerns.
+10. Strengthen the real Natural Language integration assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness. Completed.
+11. Tighten retrieval defaults around metadata filtering and context assembly without widening the package into chat or generation concerns. Completed with explicit exclusion filters and smarter context assembly defaults.
 12. Keep default CI focused on `swift build` and `swift test`, and treat Apple-asset integration coverage as a separate opt-in verification path until the runner and asset story are stable.
 
 That sequence matters because it gets a fully testable retrieval loop working before the repo takes on Apple asset-management complexity.
@@ -444,7 +443,7 @@ If the package does that cleanly, it has a real foundation.
 
 - Strengthen the opt-in `NaturalLanguageEmbedder` integration test so it proves semantic retrieval behavior with a tiny corpus and ranking expectations, not just vector shape.
 - Keep GitHub Actions green on the default macOS path with explicit `swift build` and `swift test` coverage.
-- Use [retrieval-defaults-follow-up.md](./retrieval-defaults-follow-up.md) as the detailed scope note for the next metadata-filtering and context-assembly pass, and keep that pass retrieval-first rather than drifting into answer synthesis or query-language design.
+- Keep [retrieval-defaults-follow-up.md](./retrieval-defaults-follow-up.md) as the remaining scope note for any future optional retrieval-default polish, and keep that work retrieval-first rather than drifting into answer synthesis or query-language design.
 
 ## Open Questions
 
