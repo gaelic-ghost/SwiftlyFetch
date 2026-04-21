@@ -84,4 +84,4 @@ Tagged releases should be created with `scripts/repo-maintenance/release.sh`, an
 
 ## License
 
-See [LICENSE](./LICENSE) for the current repository licensing status.
+Licensed under the Apache License 2.0. See [LICENSE](./LICENSE).
