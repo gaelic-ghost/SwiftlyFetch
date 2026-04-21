@@ -9,7 +9,7 @@ public struct SearchQuery: Hashable, Codable, Sendable {
         filter: MetadataFilter? = nil
     ) {
         self.text = text
-        self.limit = limit
+        self.limit = max(0, limit)
         self.filter = filter
     }
 }
