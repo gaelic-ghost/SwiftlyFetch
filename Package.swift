@@ -35,6 +35,10 @@ let package = Package(
             name: "RAGKitTests",
             dependencies: ["RAGKit", "RAGCore"]
         ),
+        .testTarget(
+            name: "RAGKitIntegrationTests",
+            dependencies: ["RAGKit", "RAGCore"]
+        ),
     ],
     swiftLanguageModes: [.v6]
 )

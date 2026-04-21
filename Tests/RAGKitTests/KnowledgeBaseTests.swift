@@ -2,15 +2,42 @@ import Testing
 import RAGCore
 @testable import RAGKit
 
+@Test("HeadingAwareMarkdownChunker carries heading context into markdown chunks")
+func headingAwareMarkdownChunkerIncludesHeadingContext() throws {
+    let chunker = HeadingAwareMarkdownChunker()
+    let document = Document(
+        id: "doc-markdown",
+        content: .markdown(
+            """
+            # Fruit Guide
+
+            ## Apples
+
+            Bright and crisp.
+
+            ## Oranges
+
+            Juicy and sweet.
+            """
+        )
+    )
+
+    let chunks = try chunker.chunks(for: document)
+
+    #expect(chunks.count == 2)
+    #expect(chunks[0].text == "Fruit Guide\nApples\n\nBright and crisp.")
+    #expect(chunks[1].text == "Fruit Guide\nOranges\n\nJuicy and sweet.")
+}
+
 @Test("KnowledgeBase adds documents, searches them, and removes them deterministically")
 func knowledgeBaseIndexesSearchesAndRemovesDocuments() async throws {
     let knowledgeBase = KnowledgeBase(
-        chunker: ParagraphChunker(),
+        chunker: DefaultChunker(),
         embedder: FixedEmbedder(
             chunkEmbeddingsByText: [
                 "Apples are bright and crisp.": EmbeddingVector([1, 0]).normalized(),
                 "Bananas are soft and sweet.": EmbeddingVector([0, 1]).normalized(),
-                "Oranges are juicy and bright.": EmbeddingVector([0.9, 0.1]).normalized(),
+                "Citrus Notes\nOranges\n\nOranges are juicy and bright.": EmbeddingVector([0.9, 0.1]).normalized(),
             ],
             queryEmbeddingsByText: [
                 "bright fruit": EmbeddingVector([1, 0]).normalized(),
@@ -27,7 +54,15 @@ func knowledgeBaseIndexesSearchesAndRemovesDocuments() async throws {
         ),
         Document(
             id: "doc-oranges",
-            content: .markdown("Oranges are juicy and bright."),
+            content: .markdown(
+                """
+                # Citrus Notes
+
+                ## Oranges
+
+                Oranges are juicy and bright.
+                """
+            ),
             metadata: ["category": .string("citrus")]
         ),
     ])
@@ -45,7 +80,7 @@ func knowledgeBaseIndexesSearchesAndRemovesDocuments() async throws {
 @Test("KnowledgeBase makeContext renders plain and annotated snippets within budget")
 func knowledgeBaseMakeContextRendersDeterministicContext() async throws {
     let knowledgeBase = KnowledgeBase(
-        chunker: ParagraphChunker(),
+        chunker: DefaultChunker(),
         embedder: FixedEmbedder(
             chunkEmbeddingsByText: [
                 "First paragraph about apples.": EmbeddingVector([1, 0]).normalized(),
@@ -83,6 +118,31 @@ func knowledgeBaseMakeContextRendersDeterministicContext() async throws {
     #expect(plainContext == "First paragraph about apples.\n\nSecond…")
     #expect(annotatedContext.contains("[Document: doc-fruit | Chunk: doc-fruit#0 | Score:"))
     #expect(annotatedContext.contains("First paragraph about apples."))
+}
+
+@Test("KnowledgeBase hashingDefault uses heading-aware markdown chunking by default")
+func knowledgeBaseHashingDefaultPrefersMarkdownAwareChunking() async throws {
+    let knowledgeBase = try await KnowledgeBase.hashingDefault(dimension: 32)
+
+    try await knowledgeBase.addDocument(
+        Document(
+            id: "doc-defaults",
+            content: .markdown(
+                """
+                # Retrieval Defaults
+
+                ## Markdown
+
+                Heading aware chunking should help searches surface the right section.
+                """
+            )
+        )
+    )
+
+    let results = try await knowledgeBase.search("markdown section", limit: 1)
+    #expect(results.count == 1)
+    #expect(results[0].chunk.text.contains("Retrieval Defaults"))
+    #expect(results[0].chunk.text.contains("Markdown"))
 }
 
 private struct FixedEmbedder: Embedder, Sendable {
