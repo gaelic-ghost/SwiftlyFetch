@@ -115,9 +115,47 @@ func knowledgeBaseMakeContextRendersDeterministicContext() async throws {
         style: .annotated
     )
 
-    #expect(plainContext == "First paragraph about apples.\n\nSecond…")
+    #expect(plainContext == "First paragraph about apples.\nSecond…")
     #expect(annotatedContext.contains("[Document: doc-fruit | Chunk: doc-fruit#0 | Score:"))
     #expect(annotatedContext.contains("First paragraph about apples."))
+}
+
+@Test("KnowledgeBase makeContext suppresses adjacent duplicate chunks and keeps same-document sections tight")
+func knowledgeBaseMakeContextSuppressesDuplicateAdjacentChunks() async throws {
+    let knowledgeBase = KnowledgeBase(
+        chunker: DefaultChunker(),
+        embedder: FixedEmbedder(
+            chunkEmbeddingsByText: [
+                "Alpha detail.": EmbeddingVector([1, 0]).normalized(),
+                "Beta follow-up.": EmbeddingVector([0.9, 0.1]).normalized(),
+                "Gamma outside.": EmbeddingVector([0.8, 0.2]).normalized(),
+            ],
+            queryEmbeddingsByText: [
+                "alpha summary": EmbeddingVector([1, 0]).normalized(),
+            ]
+        ),
+        index: InMemoryVectorIndex()
+    )
+
+    try await knowledgeBase.addDocuments([
+        Document(
+            id: "doc-primary",
+            content: .text("Alpha detail.\n\nAlpha detail.\n\nBeta follow-up.")
+        ),
+        Document(
+            id: "doc-secondary",
+            content: .text("Gamma outside.")
+        ),
+    ])
+
+    let plainContext = try await knowledgeBase.makeContext(
+        for: "alpha summary",
+        limit: 4,
+        budget: .unlimited,
+        style: .plain
+    )
+
+    #expect(plainContext == "Alpha detail.\nBeta follow-up.\n\nGamma outside.")
 }
 
 @Test("KnowledgeBase hashingDefault uses heading-aware markdown chunking by default")

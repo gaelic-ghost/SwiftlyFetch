@@ -12,6 +12,8 @@ func metadataFiltersMatchTypedValues() {
     #expect(MetadataFilter.equals("priority", .int(3)).matches(metadata))
     #expect(MetadataFilter.contains("category", "gui").matches(metadata))
     #expect(MetadataFilter.hasKey("published").matches(metadata))
+    #expect(MetadataFilter.not(.equals("published", .bool(false))).matches(metadata))
+    #expect(!MetadataFilter.not(.contains("category", "gui")).matches(metadata))
     #expect(!MetadataFilter.equals("priority", .int(2)).matches(metadata))
 }
 

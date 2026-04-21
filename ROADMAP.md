@@ -62,26 +62,26 @@ Completed
 
 ### Status
 
-In Progress
+Completed
 
 ### Scope
 
-- [ ] Verify the real Apple-backed embedding path beyond the current deterministic and seam-level coverage.
+- [x] Verify the real Apple-backed embedding path beyond the current deterministic and seam-level coverage.
 - [x] Improve retrieval quality through markdown-aware chunking and tighter retrieval defaults.
-- [ ] Keep the package ergonomic for Apple-platform app developers while preserving retrieval-first boundaries and zero external dependencies.
+- [x] Keep the package ergonomic for Apple-platform app developers while preserving retrieval-first boundaries and zero external dependencies.
 
 ### Tickets
 
 - [x] Add the heading-aware markdown chunker as the next retrieval-quality improvement after the current paragraph chunker.
 - [x] Add an opt-in `RAGKitIntegrationTests` target for real `NaturalLanguageEmbedder` coverage without making the default suite depend on Apple assets.
-- [ ] Strengthen the real `NaturalLanguageEmbedder` assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness.
-- [ ] Tighten metadata filtering and context assembly only as far as needed for a clean retrieval-first v1.
-- [ ] Add CI checks that run `swift build` and `swift test` on the default macOS path without making Apple-asset integration coverage mandatory.
+- [x] Strengthen the real `NaturalLanguageEmbedder` assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness.
+- [x] Tighten metadata filtering and context assembly only as far as needed for a clean retrieval-first v1.
+- [x] Add CI checks that run `swift build` and `swift test` on the default macOS path without making Apple-asset integration coverage mandatory.
 - [x] Replace the README overview placeholder text with settled project language.
 
 ### Exit Criteria
 
-- [ ] The package has a clean default local retrieval flow with both deterministic coverage and verified Apple-backed embedding behavior.
+- [x] The package has a clean default local retrieval flow with both deterministic coverage and verified Apple-backed embedding behavior.
 - [x] Markdown-aware chunking is available for the main ingestion surface.
 - [x] Maintainer docs clearly describe the current architecture and v1 boundaries.
 
@@ -99,3 +99,4 @@ In Progress
 - Synchronized `AGENTS.md` into the broader canonical maintainer shape while preserving the Swift package workflow section.
 - Added the heading-aware markdown chunker, default markdown-aware chunking, and an opt-in Natural Language integration test target.
 - Marked the README product wording work complete.
+- Strengthened the Apple-backed integration assertions, aligned CI with the supported Swift toolchain, and tightened retrieval defaults through exclusion filters plus smarter context assembly.
