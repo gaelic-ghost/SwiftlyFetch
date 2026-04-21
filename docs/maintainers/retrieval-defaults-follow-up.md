@@ -1,10 +1,17 @@
 # Retrieval Defaults Follow-Up
 
-Use this note to guide any future retrieval-quality pass after the current Natural Language verification, baseline CI work, and the first retrieval-defaults refinement have landed.
+Use this note to guide any future retrieval-quality pass after the current Natural Language verification, baseline CI work, and the broader retrieval-defaults refinement have landed.
 
 ## Purpose
 
-This package has already completed one retrieval-defaults refinement pass: `MetadataFilter.not(...)` now covers ordinary exclusion cases, and `makeContext(...)` now suppresses adjacent repeated chunk text while keeping same-document sections tighter than cross-document boundaries.
+This package has already completed its first broad retrieval-defaults refinement pass. The current default surface now includes:
+
+- `MetadataFilter.not(...)` for ordinary exclusions
+- ordered comparisons for `int`, `double`, and `date`
+- case-insensitive `startsWith` and `endsWith` string matching
+- grouped annotated context output with document-level labeling
+- smarter same-document duplicate suppression
+- annotated budget handling that avoids label-only sections
 
 Any next package-improvement step in this area should remain narrow. The job is still to make the package more useful for ordinary app-side retrieval without widening it into a larger query language, answer-generation layer, or orchestration surface.
 
@@ -23,8 +30,8 @@ The point is not to make `KnowledgeBase` smarter in a chat or agent sense. The p
 
 The package already has a good small baseline:
 
-- `MetadataFilter` supports key presence, typed equality, string containment, and `any` / `all` composition
-- `KnowledgeBase.makeContext(...)` assembles top results into plain or annotated text within a character budget
+- `MetadataFilter` supports key presence, typed equality, string containment, string prefix/suffix matching, ordered typed comparisons, and logical composition
+- `KnowledgeBase.makeContext(...)` assembles top results into plain or annotated text with grouped document labeling, duplicate suppression, and deterministic budget handling
 - the current behavior is deterministic and easy to reason about
 
 That is enough for the first useful retrieval loop, but it still leaves a few likely v1 pain points unresolved.
@@ -52,10 +59,10 @@ That means preserving:
 
 ### Likely Additions Worth Considering
 
-The next pass may justify one or two additions if they clearly remove real app-side boilerplate:
+Any next pass may justify one or two additions if they clearly remove real app-side boilerplate:
 
-- `not(...)` for simple exclusions without forcing callers to restructure every filter tree
-- lightweight numeric or date comparison operators only if a real retrieval use case already needs recency or score-window style narrowing
+- additional typed predicates only if a real retrieval use case needs them beyond the current comparison set
+- small convenience APIs layered on top of the existing filter cases, if they truly reduce caller repetition without introducing a larger query language
 
 ### Avoid
 
@@ -86,12 +93,10 @@ Its job is still:
 
 ### Likely Improvements Worth Considering
 
-The next pass should focus on practical output quality improvements such as:
+Any next pass should focus on practical output quality improvements such as:
 
-- clearer section separation rules when multiple chunks from the same document are included
-- lightweight duplicate suppression when adjacent results are effectively repeating the same text
-- stable document or chunk labeling that helps downstream consumers keep citations straight
-- budget behavior that remains deterministic when annotated headers consume meaningful space
+- small rendering polish for downstream readability if a concrete caller needs it
+- limited duplicate heuristics only if repeated real-world retrieval traces still show noisy context after the current same-document suppression
 
 ### Avoid
 

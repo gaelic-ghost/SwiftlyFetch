@@ -73,8 +73,8 @@ Current defaults:
 - markdown uses heading-aware chunking
 - `hashingDefault()` gives a deterministic local path for tests and examples
 - `naturalLanguageDefault()` uses the Apple Natural Language backend on supported platforms
-- metadata filtering supports explicit exclusions through `MetadataFilter.not(...)`
-- `makeContext(...)` suppresses adjacent repeated chunk text and keeps same-document sections tighter than cross-document boundaries
+- metadata filtering supports explicit exclusions, ordered comparisons for `int`, `double`, and `date`, plus case-insensitive `startsWith` and `endsWith` string matching
+- `makeContext(...)` suppresses redundant same-document chunk text, groups annotated output by document, and skips annotated sections that only have room for labels
 
 ## Development
 

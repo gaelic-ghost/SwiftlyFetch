@@ -99,4 +99,4 @@ Completed
 - Synchronized `AGENTS.md` into the broader canonical maintainer shape while preserving the Swift package workflow section.
 - Added the heading-aware markdown chunker, default markdown-aware chunking, and an opt-in Natural Language integration test target.
 - Marked the README product wording work complete.
-- Strengthened the Apple-backed integration assertions, aligned CI with the supported Swift toolchain, and tightened retrieval defaults through exclusion filters plus smarter context assembly.
+- Strengthened the Apple-backed integration assertions, aligned CI with the supported Swift toolchain, and tightened retrieval defaults through richer metadata filters plus smarter grouped context assembly.
