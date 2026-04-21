@@ -129,6 +129,33 @@ let context = try await kb.makeContext(for: "...")
 
 The package should resist introducing builder-heavy abstractions unless a real extension point proves they are necessary.
 
+## Current Implementation Snapshot
+
+The repository has already moved beyond pure planning.
+
+Implemented today:
+
+- `RAGCore` contains the typed identifiers, documents, chunks, embeddings, search models, metadata filtering, context budget/style types, and the core `Chunker`, `Embedder`, and `VectorIndex` protocols.
+- `RAGKit` contains:
+  - `ParagraphChunker`
+  - `HeadingAwareMarkdownChunker`
+  - `DefaultChunker`
+  - `InMemoryVectorIndex`
+  - `HashingEmbedder`
+  - `KnowledgeBase`
+  - `NaturalLanguageEmbedder`
+  - `AppleContextualEmbeddingBackend`
+  - convenience constructors for `hashingDefault()` and `naturalLanguageDefault()`
+- deterministic tests cover the main retrieval flow and the Natural Language wrapper seam
+- an opt-in integration test target exists for real Natural Language embedding coverage and stays non-blocking unless explicitly enabled
+
+Still intentionally incomplete:
+
+- stronger real-asset Natural Language assertions beyond basic vector-shape coverage
+- richer retrieval-default tuning around metadata filtering and context assembly
+- more markdown chunker coverage for edge cases and future evolution
+- settled public README/product wording
+
 ## v1 Scope
 
 Version 1 should focus on retrieval only.
@@ -178,6 +205,12 @@ The chunking rollout should be:
 2. heading-aware markdown chunker immediately after the basic scaffold is working
 
 That second step should be treated as a near-term quality improvement, not a distant backlog nice-to-have.
+
+Current status:
+
+- paragraph chunking is implemented
+- heading-aware markdown chunking is implemented and now backs the default markdown path
+- the next chunking work is test-depth and behavior refinement, not the first implementation
 
 ## Embedding Plan
 
@@ -313,6 +346,12 @@ That means:
 - real Natural Language integration tests should be separate and opt-in
 - examples and starter flows should work with a deterministic fallback backend
 
+Current status:
+
+- the deterministic wrapper and knowledge-base tests are in place
+- the opt-in Natural Language integration target exists
+- the next testing improvement is stronger semantic assertions under real Apple assets, not just non-empty normalized vector checks
+
 ## Package Structure Target
 
 The intended package shape after the first real refactor should be:
@@ -357,15 +396,17 @@ That is future-facing package-family planning, not a v1 implementation requireme
 
 The first concrete implementation pass should happen in this order:
 
-1. Define the core model types and protocols in `RAGCore`.
-2. Implement a paragraph chunker in `RAGKit`.
-3. Implement an in-memory cosine-similarity vector index in `RAGKit`.
-4. Implement a deterministic hashing or fake embedder in `RAGKit`.
-5. Implement the `KnowledgeBase` actor facade.
-6. Add `NaturalLanguageEmbedder` backed by `NLContextualEmbedding`.
-7. Add tests that target the public wrapper while injecting a fake backend.
-8. Add opt-in integration tests for real Natural Language embedding behavior.
-9. Add a heading-aware markdown chunker as the first major retrieval-quality improvement.
+1. Define the core model types and protocols in `RAGCore`. Completed.
+2. Implement a paragraph chunker in `RAGKit`. Completed.
+3. Implement an in-memory cosine-similarity vector index in `RAGKit`. Completed.
+4. Implement a deterministic hashing or fake embedder in `RAGKit`. Completed.
+5. Implement the `KnowledgeBase` actor facade. Completed.
+6. Add `NaturalLanguageEmbedder` backed by `NLContextualEmbedding`. Completed.
+7. Add tests that target the public wrapper while injecting a fake backend. Completed.
+8. Add opt-in integration tests for real Natural Language embedding behavior. Partially completed; the target exists and basic assertions are in place, but the semantic assertions should be strengthened.
+9. Add a heading-aware markdown chunker as the first major retrieval-quality improvement. Completed.
+10. Strengthen the real Natural Language integration assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness.
+11. Tighten retrieval defaults around metadata filtering and context assembly without widening the package into chat or generation concerns.
 
 That sequence matters because it gets a fully testable retrieval loop working before the repo takes on Apple asset-management complexity.
 

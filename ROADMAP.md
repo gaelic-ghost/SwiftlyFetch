@@ -25,7 +25,7 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 ## Milestone Progress
 
 - Milestone 0: Foundation - Completed
-- Milestone 1: Retrieval Defaults - Planned
+- Milestone 1: Retrieval Defaults - In Progress
 
 ## Milestone 0: Foundation
 
@@ -62,25 +62,26 @@ Completed
 
 ### Status
 
-Planned
+In Progress
 
 ### Scope
 
 - [ ] Verify the real Apple-backed embedding path beyond the current deterministic and seam-level coverage.
-- [ ] Improve retrieval quality through markdown-aware chunking and tighter retrieval defaults.
+- [x] Improve retrieval quality through markdown-aware chunking and tighter retrieval defaults.
 - [ ] Keep the package ergonomic for Apple-platform app developers while preserving retrieval-first boundaries and zero external dependencies.
 
 ### Tickets
 
-- [ ] Implement and verify the real `NaturalLanguageEmbedder` behavior on supported Apple platforms with opt-in integration coverage.
-- [ ] Add the heading-aware markdown chunker as the next retrieval-quality improvement after the current paragraph chunker.
+- [x] Add the heading-aware markdown chunker as the next retrieval-quality improvement after the current paragraph chunker.
+- [x] Add an opt-in `RAGKitIntegrationTests` target for real `NaturalLanguageEmbedder` coverage without making the default suite depend on Apple assets.
+- [ ] Strengthen the real `NaturalLanguageEmbedder` assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness.
 - [ ] Tighten metadata filtering and context assembly only as far as needed for a clean retrieval-first v1.
 - [ ] Replace the README overview placeholder text with settled project language.
 
 ### Exit Criteria
 
 - [ ] The package has a clean default local retrieval flow with both deterministic coverage and verified Apple-backed embedding behavior.
-- [ ] Markdown-aware chunking is available for the main ingestion surface.
+- [x] Markdown-aware chunking is available for the main ingestion surface.
 - [ ] Maintainer docs clearly describe the current architecture and v1 boundaries.
 
 ## Backlog Candidates
@@ -96,3 +97,4 @@ Planned
 - Published the initial public GitHub repository and pushed the bootstrap commit.
 - Refactored the package into `RAGCore` and `RAGKit` and added the first retrieval implementations plus deterministic tests.
 - Synchronized `AGENTS.md` into the broader canonical maintainer shape while preserving the Swift package workflow section.
+- Added the heading-aware markdown chunker, default markdown-aware chunking, and an opt-in Natural Language integration test target.
