@@ -22,6 +22,8 @@ An Apple-first Swift Package for local retrieval, document chunking, embeddings,
 
 SwiftlyFetch is a retrieval-first Swift package for Apple-platform apps. The current public package surface is split into `RAGCore` for the typed retrieval models and protocols, and `RAGKit` for the default chunking, embedding, indexing, and `KnowledgeBase` implementations.
 
+Longer-term, `SwiftlyFetch` is also intended to be the umbrella product name that can sit above this semantic-retrieval surface and a sibling traditional document and full-text-search surface built around `FetchCore` and `FetchKit`. That future family split does not change the current package boundary: `RAGKit` still owns semantic retrieval work, not conventional document search.
+
 ### Motivation
 
 The goal is to make local knowledge-base retrieval feel native and pleasant in Swift apps without turning the package into a chat framework or a giant AI abstraction layer.
@@ -70,10 +72,12 @@ let appleKB = try await KnowledgeBase.naturalLanguageDefault(languageHint: "en")
 Current defaults:
 
 - plain text uses paragraph chunking
-- markdown uses heading-aware chunking
+- markdown uses parser-backed heading-aware chunking
 - `hashingDefault()` gives a deterministic local path for tests and examples
 - `naturalLanguageDefault()` uses the Apple Natural Language backend on supported platforms
 - metadata filtering supports explicit exclusions, ordered comparisons for `int`, `double`, and `date`, plus case-insensitive `startsWith` and `endsWith` string matching
+- markdown list items keep heading and immediate lead-in context in chunk text, and also carry structured chunk metadata for list kind, lead-in, ordinal, and heading path
+- markdown block quotes stay secondary by default, but are promoted into the primary retrieval stream when they make up more than one third of the document's chunkable block structure
 - `makeContext(...)` suppresses redundant same-document chunk text, groups annotated output by document, and skips annotated sections that only have room for labels
 
 Supported today:
@@ -82,6 +86,7 @@ Supported today:
 - use deterministic hashing embeddings for tests, previews, and fully local examples
 - use Apple Natural Language embeddings for on-device semantic retrieval on supported platforms
 - narrow retrieval with typed metadata filters
+- preserve meaningful markdown structure for retrieval, including heading paths, list semantics, and quote-heavy documents
 - turn ranked search results into plain or annotated context text for downstream UI or model consumers
 
 ## Development

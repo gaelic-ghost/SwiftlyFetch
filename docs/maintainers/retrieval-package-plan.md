@@ -146,12 +146,15 @@ Implemented today:
   - `NaturalLanguageEmbedder`
   - `AppleContextualEmbeddingBackend`
   - convenience constructors for `hashingDefault()` and `naturalLanguageDefault()`
+- markdown chunking now uses a parser-backed internal section model built on [swift-markdown](https://github.com/swiftlang/swift-markdown) instead of the earlier line-based heading scanner
+- list-item chunks now preserve immediate lead-in context in chunk text and also expose chunk metadata for block kind, list kind, lead-in, ordinal, and heading path
+- block quotes stay secondary by default but are promoted into the primary retrieval stream when they make up more than one third of the document's chunkable block structure
 - deterministic tests cover the main retrieval flow and the Natural Language wrapper seam
 - an opt-in integration test target exists for real Natural Language embedding coverage and stays non-blocking unless explicitly enabled
 
 Still intentionally incomplete:
 
-- more markdown chunker coverage for edge cases and future evolution
+- markdown policy refinement for additional block kinds and future evolution
 - optional future retrieval-default refinements only if concrete caller needs emerge beyond the current exclusion, ordered-comparison, and grouped-context defaults
 
 ## v1 Scope
@@ -207,8 +210,10 @@ That second step should be treated as a near-term quality improvement, not a dis
 Current status:
 
 - paragraph chunking is implemented
-- heading-aware markdown chunking is implemented and now backs the default markdown path
-- the next chunking work is test-depth and behavior refinement, not the first implementation
+- heading-aware markdown chunking is implemented, parser-backed, and now backs the default markdown path
+- list semantics are preserved in both chunk text and chunk metadata for retrieval quality and downstream indexing use
+- quote-heavy documents can promote block quotes into the primary retrieval stream when quoted material is a substantial share of the document structure
+- the next chunking work is policy refinement for additional markdown block kinds, not first-parser adoption
 
 ## Embedding Plan
 
@@ -351,6 +356,12 @@ Current status:
 - real Apple-backed integration coverage now checks semantic retrieval behavior rather than only non-empty normalized vectors
 - default CI should prove `swift build` and `swift test` on the ordinary macOS path, while Apple-asset integration coverage stays opt-in until a reliable asset-enabled runner story exists
 
+Current CI position:
+
+- do not make downloaded Apple embedding assets a required dependency of GitHub-hosted macOS CI jobs
+- treat fresh hosted runners as an acceptable place for ordinary non-asset verification, not as the source of truth for asset-required coverage
+- if asset-required automation becomes important later, prefer an optional hosted lane or a self-hosted macOS runner with known asset state over widening the required default gate
+
 ## Package Structure Target
 
 The intended package shape after the first real refactor should be:
@@ -385,11 +396,14 @@ There is already a likely future expansion path beyond the retrieval modules in 
 
 If the repository later grows a document and full-text-search family, the intended direction is:
 
-- `FetchCore` as the low-level document and full-text-search core
-- `FetchKit` as the higher-level document/search implementation layer
-- `SwiftlyFetch` as a future umbrella product that becomes the shared public entry point across both the RAG and fetch surfaces
+- `RAGCore` and `RAGKit` stay responsible for semantic retrieval: chunking, embeddings, vector indexing, semantic search, filtering, and context assembly
+- `FetchCore` becomes the low-level document and traditional full-text-search core
+- `FetchKit` becomes the higher-level document/search implementation layer, likely centered on Core Data plus SearchKit-backed indexing and retrieval
+- `SwiftlyFetch` is the umbrella product story that can eventually sit above both the semantic retrieval and traditional search families
 
-That is future-facing package-family planning, not a v1 implementation requirement. It should not distort the current retrieval-first scope, but it should be remembered when choosing names and public package boundaries now.
+In plain language: `RAGKit` should not slowly become the home for conventional document search just because the repository name is broad. The intended model is sibling families with different search jobs, not one module family that tries to own everything.
+
+That is future-facing package-family planning, not a v1 implementation requirement. It should not distort the current retrieval-first scope, but it should guide naming and boundary decisions now so later `FetchKit` work can integrate with `SwiftlyFetch` without forcing conventional search concerns into the RAG modules.
 
 ## Implementation Sequence
 
@@ -409,6 +423,123 @@ The first concrete implementation pass should happen in this order:
 12. Keep default CI focused on `swift build` and `swift test`, and treat Apple-asset integration coverage as a separate opt-in verification path until the runner and asset story are stable.
 
 That sequence matters because it gets a fully testable retrieval loop working before the repo takes on Apple asset-management complexity.
+
+## Markdown Refinement Direction
+
+The current heading-aware markdown chunker is a useful first retrieval-quality step, but it is still a lightweight line-based heading scanner rather than a full markdown parser.
+
+That is acceptable for the first release, but it should not become the long-term parsing strategy by inertia.
+
+The next markdown pass should start by evaluating whether the repository should adopt a real parser, with [swift-markdown](https://github.com/swiftlang/swift-markdown) as the first candidate.
+
+The practical decision rule should be:
+
+- use a real markdown parser to understand markdown structure
+- keep retrieval-specific chunking policy in this package
+- avoid rebuilding markdown parsing rules locally unless a parser-backed approach is clearly unworkable for the retrieval job
+
+In plain language: parsing markdown syntax and deciding how retrieval chunks should be assembled are different jobs. The package should prefer borrowing the parsing job from a well-maintained parser and keep owning only the retrieval policy built on top of that structure.
+
+If `swift-markdown` is adopted later, that should be treated as an intentional scope tradeoff: one external dependency in exchange for significantly stronger markdown correctness and less parser maintenance risk in this package.
+
+Current outcome:
+
+- the package now uses `swift-markdown` as the parsing layer for markdown chunking
+- chunk text still carries the local structure the embedder needs for high-quality retrieval
+- chunk metadata now also carries structured list and heading information for downstream fetching, indexing, or filtering work
+- block quotes are still not first-class by default, but quote-heavy documents can promote them into the primary retrieval stream when they cross the current one-third block-structure threshold
+
+## Markdown Refactor Execution Plan
+
+The markdown refactor should happen in deliberately staged passes instead of one big rewrite.
+
+### Phase 1: Characterize Current And Desired Behavior
+
+Before changing implementation, add deterministic tests that pin both the currently desired retrieval behavior and the cases the current scanner is likely to mishandle.
+
+That test pass should cover:
+
+- preamble text before the first heading
+- nested heading paths across multiple heading depths
+- consecutive headings with empty sections
+- fenced code blocks that contain `#` characters which should not be treated as headings
+- block quotes and list items under headings
+- heading-only sections with no body
+- source-offset expectations for produced chunk positions
+
+The goal of this phase is not to freeze every current bug forever. The goal is to make the upcoming parser change measurable instead of intuitive.
+
+### Phase 2: Add An Internal Markdown Structure Seam
+
+Before adopting a parser dependency, introduce an internal representation for markdown-derived retrieval sections.
+
+That internal seam should be narrow and package-private. It should model only what the chunker needs:
+
+- the extracted body text or source range
+- the active heading path for that body
+- the source offsets needed to produce stable `ChunkPosition` values
+
+This is a local implementation detail, not a public API change. The practical effect is that the line-based scanner and any future parser-backed implementation can target the same internal shape.
+
+### Phase 3: Evaluate A Parser-Backed Implementation
+
+Once the internal seam exists and the tests are in place, spike a parser-backed implementation with [swift-markdown](https://github.com/swiftlang/swift-markdown).
+
+The relevant documented behavior we are relying on is:
+
+- Swift `Markdown` is a Swift package for parsing, building, editing, and analyzing Markdown documents
+- it parses through `Document(parsing:)`
+- it is powered by `cmark-gfm`, so it follows GitHub-flavored Markdown closely
+
+In practical terms, that means the parser can own syntax understanding while this package still owns retrieval-specific chunk policy.
+
+### Phase 4: Choose Retrieval Policy Explicitly
+
+The parser does not answer the retrieval policy questions by itself. Before the final swap, make the following decisions explicit in code and tests:
+
+- whether heading text stays a prefix on chunk text as it does today
+- whether list items should merge into nearby prose or split into their own chunks
+- whether fenced code blocks should be skipped, preserved, or normalized specially for retrieval
+- whether block quotes should stay inline with surrounding text or become separate chunk material
+- how preamble text before the first heading should behave
+
+The default recommendation is conservative:
+
+- keep heading-prefix context
+- preserve preamble text as chunks without heading context
+- treat ordinary prose and list content as chunkable text
+- skip code blocks in the first parser-backed pass unless a concrete retrieval use case proves they help
+
+### Phase 5: Swap The Chunker Behind The Existing Public API
+
+Only after the previous phases are green should `HeadingAwareMarkdownChunker` switch from the current scanner-backed implementation to the chosen internal structure provider.
+
+The public contract should stay stable:
+
+- markdown documents still go through a markdown-aware chunker
+- plain text still falls back to paragraph chunking
+- produced chunks still carry inherited metadata and stable chunk identifiers
+
+### Phase 6: Validate Offsets And Retrieval Quality
+
+The highest-risk part of the refactor is source-offset fidelity.
+
+The current scanner computes offsets directly from the source string. A parser-backed implementation must prove that `ChunkPosition.startOffset` and `endOffset` still correspond to meaningful source ranges in the original markdown text.
+
+This validation should include:
+
+- deterministic tests for offsets on representative markdown samples
+- a retrieval smoke test showing that heading-context behavior still helps search results surface the intended section
+
+### Recommended Commit Shape
+
+Prefer landing this work in small focused commits:
+
+1. maintainer docs and roadmap alignment
+2. markdown characterization tests
+3. internal markdown section seam
+4. parser dependency and parser-backed implementation, if adopted
+5. follow-up heuristics only if the parser-backed path still needs retrieval-specific refinement
 
 ## Quality Bar For v1
 

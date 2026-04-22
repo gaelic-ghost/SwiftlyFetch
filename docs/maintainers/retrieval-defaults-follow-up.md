@@ -42,7 +42,43 @@ The desired outcome for this pass is:
 
 - ordinary app code can narrow searches by simple metadata facts without inventing its own wrapper layer
 - context assembly produces predictable, compact output that preserves retrieval value without pretending to synthesize an answer
+- markdown chunking is based on a parsing strategy that is robust enough for real markdown documents instead of growing an accidental homegrown markdown parser over time
+- markdown chunk text and chunk metadata both preserve enough local structure to support high-quality retrieval plus downstream search, indexing, and fetching work
 - the public API still feels small and obvious
+
+## Markdown Chunking Scope
+
+### Keep
+
+Keep markdown work retrieval-first.
+
+That means the package still owns:
+
+- how markdown content turns into retrieval chunks
+- how heading context or other structural hints should influence chunk text
+- which local structure belongs in chunk metadata as well as chunk text
+- how chunk boundaries should behave for retrieval quality
+
+### Prefer
+
+Prefer a real markdown parser over extending the current lightweight heading scanner indefinitely.
+
+The first parser candidate to evaluate should be [swift-markdown](https://github.com/swiftlang/swift-markdown), because it gives the package a maintained markdown syntax tree while still letting this repository own the retrieval policy built on top of that tree.
+
+### Avoid
+
+Avoid slowly turning the current chunker into an ad hoc markdown parser.
+
+That means avoiding piecemeal local parsing rules for increasingly many markdown cases such as:
+
+- heading syntax edge cases
+- fenced code blocks
+- block quotes
+- lists
+- thematic breaks
+- link-reference structure
+
+If the package needs to understand more markdown structure, that should normally push the work toward a parser-backed design rather than another round of line-oriented special cases.
 
 ## Metadata Filtering Scope
 
@@ -121,6 +157,8 @@ Examples of changes that fit this note well:
 - improve annotated-context formatting so repeated document identity is easier to scan
 - make plain-context assembly slightly smarter about repeated adjacent chunks from the same document
 - tighten budget handling tests around truncation and separators
+- evaluate `swift-markdown` for parser-backed markdown chunking, then add tests around the chosen structure-aware chunking behavior
+- refine block-quote promotion heuristics or expand chunk metadata when a concrete retrieval or indexing need emerges
 
 ## Changes That Should Trigger Escalation
 
@@ -147,6 +185,7 @@ When this pass starts for real, the order should be:
 This follow-up is done when:
 
 - the package gains one small meaningful retrieval-quality improvement in metadata filtering, context assembly, or both
+- the markdown ingestion path is either parser-backed or has an explicitly defended reason for staying scanner-backed
 - the public surface stays retrieval-first and easy to explain
 - tests cover the new behavior deterministically
 - no generation, chat, or orchestration concepts leak into the package surface

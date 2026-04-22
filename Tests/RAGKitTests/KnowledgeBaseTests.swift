@@ -30,6 +30,218 @@ struct ChunkerTests {
         #expect(chunks[0].text == "Fruit Guide\nApples\n\nBright and crisp.")
         #expect(chunks[1].text == "Fruit Guide\nOranges\n\nJuicy and sweet.")
     }
+
+    @Test("HeadingAwareMarkdownChunker keeps preamble text and nested heading context distinct")
+    func headingAwareMarkdownChunkerIncludesPreambleAndNestedHeadings() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let source = """
+        Intro paragraph before any headings.
+
+        # Fruit Guide
+
+        ## Citrus
+
+        ### Oranges
+
+        Juicy and sweet.
+        """
+        let document = Document(
+            id: "doc-preamble",
+            content: .markdown(source)
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 2)
+        #expect(chunks[0].text == "Intro paragraph before any headings.")
+        #expect(chunks[1].text == "Fruit Guide\nCitrus\nOranges\n\nJuicy and sweet.")
+    }
+
+    @Test("HeadingAwareMarkdownChunker keeps chunk body offsets tied to original markdown source")
+    func headingAwareMarkdownChunkerPreservesBodyOffsets() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let source = """
+        # Fruit Guide
+
+        ## Apples
+
+        Bright and crisp.
+        """
+        let document = Document(
+            id: "doc-offsets",
+            content: .markdown(source)
+        )
+
+        let chunks = try chunker.chunks(for: document)
+        let chunk = try #require(chunks.first)
+        let start = String.Index(utf16Offset: chunk.position.startOffset, in: source)
+        let end = String.Index(utf16Offset: chunk.position.endOffset, in: source)
+
+        #expect(String(source[start..<end]) == "Bright and crisp.")
+        #expect(chunk.text == "Fruit Guide\nApples\n\nBright and crisp.")
+    }
+
+    @Test("HeadingAwareMarkdownChunker ignores heading-like lines inside fenced code blocks")
+    func headingAwareMarkdownChunkerIgnoresHeadingsInsideCodeBlocks() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-code-fence",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                ```markdown
+                ## Not A Real Heading
+                ```
+
+                Real paragraph after the code block.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "Fruit Guide\n\nReal paragraph after the code block.")
+    }
+
+    @Test("HeadingAwareMarkdownChunker splits list items into retrieval-friendly chunks")
+    func headingAwareMarkdownChunkerSplitsListItems() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-list",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                ## Shopping
+
+                - Apples are crisp.
+                - Oranges are juicy.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 2)
+        #expect(chunks[0].text == "Fruit Guide\nShopping\n\nApples are crisp.")
+        #expect(chunks[1].text == "Fruit Guide\nShopping\n\nOranges are juicy.")
+    }
+
+    @Test("HeadingAwareMarkdownChunker carries immediate lead-in context into list item chunks")
+    func headingAwareMarkdownChunkerCarriesLeadInContextIntoListItems() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-list-leadin",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                ## Shopping
+
+                Pick one of these options:
+
+                - Apples are crisp.
+                - Oranges are juicy.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 3)
+        #expect(chunks[0].text == "Fruit Guide\nShopping\n\nPick one of these options:")
+        #expect(chunks[1].text == "Fruit Guide\nShopping\n\nPick one of these options:\n\nApples are crisp.")
+        #expect(chunks[2].text == "Fruit Guide\nShopping\n\nPick one of these options:\n\nOranges are juicy.")
+        #expect(chunks[1].metadata["rag.blockKind"] == .string("listItem"))
+        #expect(chunks[1].metadata["rag.listKind"] == .string("unordered"))
+        #expect(chunks[1].metadata["rag.listLeadIn"] == .string("Pick one of these options:"))
+        #expect(chunks[1].metadata["rag.headingPath"] == .string("Fruit Guide > Shopping"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker preserves ordered list sequence in chunk text")
+    func headingAwareMarkdownChunkerPreservesOrderedListSequence() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-ordered-list",
+            content: .markdown(
+                """
+                # Setup
+
+                ## Steps
+
+                Follow these steps:
+
+                1. Install Swift.
+                2. Build the package.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 3)
+        #expect(chunks[1].text == "Setup\nSteps\n\nFollow these steps:\n\n1. Install Swift.")
+        #expect(chunks[2].text == "Setup\nSteps\n\nFollow these steps:\n\n2. Build the package.")
+        #expect(chunks[1].metadata["rag.listKind"] == .string("ordered"))
+        #expect(chunks[1].metadata["rag.listOrdinal"] == .int(1))
+        #expect(chunks[2].metadata["rag.listOrdinal"] == .int(2))
+    }
+
+    @Test("HeadingAwareMarkdownChunker keeps block quote content secondary to surrounding prose")
+    func headingAwareMarkdownChunkerKeepsBlockQuotesSecondaryToProse() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-block-quote",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                Main explanation paragraph.
+
+                > Supporting quote that should not become its own retrieval chunk.
+
+                Closing paragraph.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 2)
+        #expect(chunks[0].text == "Fruit Guide\n\nMain explanation paragraph.")
+        #expect(chunks[1].text == "Fruit Guide\n\nClosing paragraph.")
+    }
+
+    @Test("HeadingAwareMarkdownChunker promotes block quotes when they are a large share of chunkable blocks")
+    func headingAwareMarkdownChunkerPromotesQuoteHeavyDocuments() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-quote-heavy",
+            content: .markdown(
+                """
+                # Quotes
+
+                Intro paragraph.
+
+                > Important quoted idea.
+
+                > Another quoted idea.
+
+                Closing paragraph.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 4)
+        #expect(chunks[1].text == "Quotes\n\nImportant quoted idea.")
+        #expect(chunks[1].metadata["rag.blockKind"] == .string("blockQuote"))
+        #expect(chunks[2].text == "Quotes\n\nAnother quoted idea.")
+        #expect(chunks[2].metadata["rag.blockKind"] == .string("blockQuote"))
+    }
 }
 
 @Suite("KnowledgeBase Retrieval")

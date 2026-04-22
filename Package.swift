@@ -19,13 +19,19 @@ let package = Package(
             targets: ["RAGKit"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/swiftlang/swift-markdown.git", from: "0.7.3"),
+    ],
     targets: [
         .target(
             name: "RAGCore"
         ),
         .target(
             name: "RAGKit",
-            dependencies: ["RAGCore"]
+            dependencies: [
+                "RAGCore",
+                .product(name: "Markdown", package: "swift-markdown"),
+            ]
         ),
         .testTarget(
             name: "RAGCoreTests",

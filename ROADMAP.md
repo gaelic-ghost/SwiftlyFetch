@@ -95,26 +95,31 @@ Planned
 
 ### Scope
 
-- [ ] Deepen markdown chunker coverage around edge cases and future refinement work without widening ingestion scope beyond plain text and markdown.
-- [ ] Clarify the long-term package-family naming story around `SwiftlyFetch`, `FetchCore`, and `FetchKit` without distorting the current retrieval-first public surface.
-- [ ] Decide whether Apple-asset integration coverage should gain a separate CI lane once a reliable asset-enabled runner strategy exists.
+- [ ] Replace or significantly strengthen the current markdown chunking implementation so it handles real markdown structure without widening ingestion scope beyond plain text and markdown.
+- [ ] Record the sibling-family architecture clearly: `RAGKit` for semantic retrieval, `FetchKit` for traditional document and full-text search, and `SwiftlyFetch` as the umbrella product story.
+- [ ] Decide whether Apple-asset integration coverage should stay local or move to an optional CI lane, without making fresh GitHub-hosted macOS runners a required gate.
 
 ### Tickets
 
-- [ ] Add more edge-case tests for heading-aware markdown chunking and paragraph splitting behavior.
-- [ ] Record the package-family naming direction in maintainer docs before widening the public product story.
-- [ ] Evaluate a separate opt-in CI path for `RUN_NL_INTEGRATION_TESTS=1` instead of making the default suite depend on Apple assets.
+- [x] Evaluate replacing the current line-based heading scanner with a real markdown parser, with [`swift-markdown`](https://github.com/swiftlang/swift-markdown) as the first candidate.
+- [x] Add edge-case tests for heading-aware markdown chunking and paragraph splitting that cover the chosen parser-backed or scanner-backed design explicitly.
+- [x] Add an internal markdown-structure seam so the current scanner and any future parser-backed implementation can target the same chunk-construction shape.
+- [x] Preserve list semantics in both chunk text and chunk metadata so lead-in context, ordered-list ordinals, and heading path are available to retrieval and downstream consumers.
+- [x] Keep block quotes secondary by default, but promote them when quote-heavy documents would otherwise hide a meaningful share of the retrieval surface.
+- [ ] Record the package-family direction in maintainer docs so future `FetchCore` and `FetchKit` work does not leak conventional search responsibilities into `RAGKit`.
+- [ ] Evaluate an optional asset-enabled verification path for `RUN_NL_INTEGRATION_TESTS=1`, while keeping required GitHub-hosted CI on the default non-asset path.
 
 ### Exit Criteria
 
-- [ ] The next chunking-quality improvements are covered deterministically and stay retrieval-first.
-- [ ] The package naming and future umbrella relationship are documented clearly enough to guide follow-on API decisions.
-- [ ] The team has a settled decision on whether asset-enabled integration coverage belongs in CI, and how.
+- [ ] The markdown ingestion path is materially more correct and better covered, while still staying retrieval-first and Apple-first.
+- [ ] Markdown chunk metadata and chunk text both carry enough local structure to support high-quality retrieval and downstream fetching or indexing work.
+- [ ] The package family and responsibility split are documented clearly enough to guide follow-on API decisions.
+- [ ] The team has a settled decision on whether asset-enabled integration coverage belongs in optional CI, self-hosted CI, or local-only verification, and why.
 
 ## Backlog Candidates
 
-- [ ] Decide how the future `FetchCore` and `FetchKit` family should relate to the eventual umbrella `SwiftlyFetch` product without distorting the current retrieval-first package scope.
-- [ ] Add an optional separate CI lane for Apple-asset integration coverage once a reliable asset-enabled runner strategy exists.
+- [ ] If parser-backed markdown chunking still leaves retrieval-quality gaps, add retrieval-specific chunking heuristics on top of the chosen markdown parser instead of rebuilding markdown parsing rules locally.
+- [ ] Add an optional separate CI lane for Apple-asset integration coverage once a reliable asset-enabled runner strategy exists, most likely on self-hosted macOS or another runner with preinstalled assets.
 
 ## History
 
@@ -127,3 +132,4 @@ Planned
 - Marked the README product wording work complete.
 - Strengthened the Apple-backed integration assertions, aligned CI with the supported Swift toolchain, and tightened retrieval defaults through richer metadata filters plus smarter grouped context assembly.
 - Marked the retrieval-defaults milestone complete, opened the post-`v0.1.0` refinement milestone, and prepared the first public release.
+- Switched markdown chunking onto a parser-backed implementation, added broader markdown-structure tests, preserved list semantics in chunk text and metadata, and added quote-heavy promotion for block quotes.
