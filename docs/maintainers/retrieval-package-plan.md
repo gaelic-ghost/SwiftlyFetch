@@ -149,12 +149,15 @@ Implemented today:
 - markdown chunking now uses a parser-backed internal section model built on [swift-markdown](https://github.com/swiftlang/swift-markdown) instead of the earlier line-based heading scanner
 - list-item chunks now preserve immediate lead-in context in chunk text and also expose chunk metadata for block kind, list kind, lead-in, ordinal, and heading path
 - block quotes stay secondary by default but are promoted into the primary retrieval stream when they make up more than one third of the document's chunkable block structure
+- markdown tables now produce one retrieval chunk per body row with header-aware text and table-row metadata
+- inline links and reference links now default to visible anchor text in chunk text, while raw destinations and reference definitions stay secondary and do not become standalone retrieval chunks
 - deterministic tests cover the main retrieval flow and the Natural Language wrapper seam
 - an opt-in integration test target exists for real Natural Language embedding coverage and stays non-blocking unless explicitly enabled
 
 Still intentionally incomplete:
 
 - markdown policy refinement for additional block kinds and future evolution
+- future opt-in link-destination metadata policy on top of the parser-backed markdown structure
 - optional future retrieval-default refinements only if concrete caller needs emerge beyond the current exclusion, ordered-comparison, and grouped-context defaults
 
 ## v1 Scope
@@ -213,7 +216,8 @@ Current status:
 - heading-aware markdown chunking is implemented, parser-backed, and now backs the default markdown path
 - list semantics are preserved in both chunk text and chunk metadata for retrieval quality and downstream indexing use
 - quote-heavy documents can promote block quotes into the primary retrieval stream when quoted material is a substantial share of the document structure
-- the next chunking work is policy refinement for additional markdown block kinds, not first-parser adoption
+- markdown tables now produce header-aware row chunks for retrieval
+- the next chunking work is policy refinement for links and references, not first-parser adoption
 
 ## Embedding Plan
 
@@ -448,6 +452,44 @@ Current outcome:
 - chunk text still carries the local structure the embedder needs for high-quality retrieval
 - chunk metadata now also carries structured list and heading information for downstream fetching, indexing, or filtering work
 - block quotes are still not first-class by default, but quote-heavy documents can promote them into the primary retrieval stream when they cross the current one-third block-structure threshold
+
+## Tables And Links Direction
+
+The next markdown policy surface should focus on tables first and links second.
+
+### Tables
+
+The preferred table model is:
+
+- treat each table body row as the primary retrieval chunk unit
+- render row chunks with header-aware text so the embedder sees the column meaning, not only the raw cell values
+- add chunk metadata that marks the chunk as a table row and preserves enough table structure for downstream indexing or fetching work
+
+In plain language: a table row should not become a bare `"Qwen | Retrieval"` string if the real meaning is `"Model: Qwen"` and `"Use: Retrieval"`.
+
+Current outcome:
+
+- markdown tables now produce one retrieval chunk per body row
+- each row chunk renders header-aware text so the embedder sees the column meaning directly
+- chunk metadata marks table rows and preserves row index plus header context for downstream indexing or fetching work
+
+### Links And References
+
+The preferred link model is:
+
+- keep visible anchor text primary in chunk text
+- keep raw destinations secondary by default
+- prefer structured metadata for destinations if downstream consumers need them later
+- do not promote reference-link definitions into standalone retrieval chunks unless a concrete retrieval use case proves they matter
+
+In plain language: the words around a link usually matter more for retrieval than the URL itself.
+
+Current outcome:
+
+- inline links and reference links now default to anchor-text-only chunk text
+- raw destinations do not pollute chunk text by default
+- reference-link definitions do not become standalone retrieval chunks
+- any future link work should focus on whether destinations belong in opt-in chunk metadata, not on putting URLs into chunk text
 
 ## Markdown Refactor Execution Plan
 

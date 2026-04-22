@@ -80,6 +80,14 @@ That means avoiding piecemeal local parsing rules for increasingly many markdown
 
 If the package needs to understand more markdown structure, that should normally push the work toward a parser-backed design rather than another round of line-oriented special cases.
 
+### Next Markdown Priorities
+
+The next markdown priorities should be:
+
+- future opt-in link-destination metadata policy, with visible anchor text already primary and raw destinations already secondary by default
+
+The table pass is now in place through row-level chunking and header-aware rendering, and the default link/reference text policy is now settled, so the next markdown-policy work should focus on whether link destinations deserve opt-in chunk metadata.
+
 ## Metadata Filtering Scope
 
 ### Keep

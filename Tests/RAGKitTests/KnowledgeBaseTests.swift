@@ -242,6 +242,79 @@ struct ChunkerTests {
         #expect(chunks[2].text == "Quotes\n\nAnother quoted idea.")
         #expect(chunks[2].metadata["rag.blockKind"] == .string("blockQuote"))
     }
+
+    @Test("HeadingAwareMarkdownChunker renders table rows with header-aware text and metadata")
+    func headingAwareMarkdownChunkerRendersTableRowsWithHeaders() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-table",
+            content: .markdown(
+                """
+                # Models
+
+                | Name | Use |
+                | --- | --- |
+                | Qwen | Retrieval |
+                | Llama | Summaries |
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 2)
+        #expect(chunks[0].text == "Models\n\nName: Qwen\nUse: Retrieval")
+        #expect(chunks[1].text == "Models\n\nName: Llama\nUse: Summaries")
+        #expect(chunks[0].metadata["rag.blockKind"] == .string("tableRow"))
+        #expect(chunks[0].metadata["rag.tableHeaders"] == .string("Name | Use"))
+        #expect(chunks[0].metadata["rag.tableRowIndex"] == .int(0))
+        #expect(chunks[1].metadata["rag.tableRowIndex"] == .int(1))
+    }
+
+    @Test("HeadingAwareMarkdownChunker keeps link anchor text primary and omits raw destinations from chunk text")
+    func headingAwareMarkdownChunkerKeepsLinkAnchorTextPrimary() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-links",
+            content: .markdown(
+                """
+                # References
+
+                Read the [Swift documentation](https://swift.org/documentation) for details.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "References\n\nRead the Swift documentation for details.")
+        #expect(!chunks[0].text.contains("https://swift.org/documentation"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker does not emit standalone chunks for reference link definitions")
+    func headingAwareMarkdownChunkerSkipsReferenceLinkDefinitionsAsChunks() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-reference-links",
+            content: .markdown(
+                """
+                # References
+
+                Read the [Swift guide][swift-guide] for details.
+
+                [swift-guide]: https://swift.org/documentation
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "References\n\nRead the Swift guide for details.")
+        #expect(!chunks[0].text.contains("swift-guide"))
+        #expect(!chunks[0].text.contains("https://swift.org/documentation"))
+    }
 }
 
 @Suite("KnowledgeBase Retrieval")

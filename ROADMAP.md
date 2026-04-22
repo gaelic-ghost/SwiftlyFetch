@@ -106,6 +106,9 @@ Planned
 - [x] Add an internal markdown-structure seam so the current scanner and any future parser-backed implementation can target the same chunk-construction shape.
 - [x] Preserve list semantics in both chunk text and chunk metadata so lead-in context, ordered-list ordinals, and heading path are available to retrieval and downstream consumers.
 - [x] Keep block quotes secondary by default, but promote them when quote-heavy documents would otherwise hide a meaningful share of the retrieval surface.
+- [x] Add table-row chunking with header-aware text and chunk metadata so markdown tables carry usable retrieval structure.
+- [x] Decide the default link and reference policy so visible anchor text stays primary and raw destinations remain secondary unless a concrete retrieval need proves otherwise.
+- [ ] Decide whether any future link-destination metadata should be opt-in and chunk-scoped rather than a default retrieval surface.
 - [ ] Record the package-family direction in maintainer docs so future `FetchCore` and `FetchKit` work does not leak conventional search responsibilities into `RAGKit`.
 - [ ] Evaluate an optional asset-enabled verification path for `RUN_NL_INTEGRATION_TESTS=1`, while keeping required GitHub-hosted CI on the default non-asset path.
 
@@ -133,3 +136,6 @@ Planned
 - Strengthened the Apple-backed integration assertions, aligned CI with the supported Swift toolchain, and tightened retrieval defaults through richer metadata filters plus smarter grouped context assembly.
 - Marked the retrieval-defaults milestone complete, opened the post-`v0.1.0` refinement milestone, and prepared the first public release.
 - Switched markdown chunking onto a parser-backed implementation, added broader markdown-structure tests, preserved list semantics in chunk text and metadata, and added quote-heavy promotion for block quotes.
+- Added header-aware table-row chunking and moved the next markdown policy focus to links and references.
+- Settled the default link/reference policy so anchor text stays primary, raw destinations stay secondary, and reference definitions do not become standalone retrieval chunks.
+- Deferred link destinations to a future opt-in chunk-metadata policy instead of making them part of the default retrieval surface.

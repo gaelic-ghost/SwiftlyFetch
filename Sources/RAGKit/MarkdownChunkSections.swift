@@ -117,6 +117,66 @@ private struct MarkdownSectionCollector: MarkupWalker {
 
     mutating func visitCodeBlock(_ codeBlock: CodeBlock) {}
 
+    mutating func visitTable(_ table: Table) {
+        let headers = Array(table.head.cells.map {
+            $0.plainText.trimmingCharacters(in: .whitespacesAndNewlines)
+        })
+
+        for (rowIndex, row) in table.body.rows.enumerated() {
+            guard let sourceRange = row.range.flatMap(sourceMap.range(for:)) else {
+                continue
+            }
+
+            let cells = Array(row.cells)
+            var renderedColumns: [String] = []
+
+            for (index, cell) in cells.enumerated() {
+                let value = cell.plainText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !value.isEmpty else {
+                    continue
+                }
+
+                let header = index < headers.count ? headers[index] : ""
+                if header.isEmpty {
+                    renderedColumns.append(value)
+                } else {
+                    renderedColumns.append("\(header): \(value)")
+                }
+            }
+
+            let bodyText = renderedColumns.joined(separator: "\n")
+            guard !bodyText.isEmpty else {
+                continue
+            }
+
+            var metadata: [String: MetadataValue] = [
+                "rag.blockKind": .string("tableRow"),
+                "rag.tableRowIndex": .int(rowIndex),
+            ]
+
+            let nonEmptyHeaders = headers.filter { !$0.isEmpty }
+            if !nonEmptyHeaders.isEmpty {
+                metadata["rag.tableHeaders"] = .string(nonEmptyHeaders.joined(separator: " | "))
+            }
+
+            let headingTitles = headingPath.map(\.title)
+            if !headingTitles.isEmpty {
+                metadata["rag.headingPath"] = .string(headingTitles.joined(separator: " > "))
+            }
+
+            sections.append(
+                MarkdownChunkSectionCandidate(
+                    headingPath: headingTitles,
+                    bodyText: bodyText,
+                    sourceRange: sourceRange,
+                    preservesBodyAsSingleChunk: true,
+                    blockKind: .tableRow,
+                    metadataOverrides: metadata
+                )
+            )
+        }
+    }
+
     private func listContext(for paragraph: Paragraph) -> ListContext? {
         guard let listItem = ancestor(of: paragraph, as: ListItem.self) else {
             return nil
@@ -211,6 +271,7 @@ private enum MarkdownBlockKind {
     case paragraph
     case listItem
     case blockQuote
+    case tableRow
 }
 
 private struct MarkdownChunkSectionCandidate {
@@ -231,6 +292,8 @@ private struct MarkdownChunkSectionCandidate {
                 mergedMetadata["rag.blockKind"] = .string("listItem")
             case .blockQuote:
                 mergedMetadata["rag.blockKind"] = .string("blockQuote")
+            case .tableRow:
+                mergedMetadata["rag.blockKind"] = .string("tableRow")
             }
         }
 
