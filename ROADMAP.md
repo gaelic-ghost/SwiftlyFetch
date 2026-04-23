@@ -10,6 +10,7 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 - [Milestone 0: Foundation](#milestone-0-foundation)
 - [Milestone 1: Retrieval Defaults](#milestone-1-retrieval-defaults)
 - [Milestone 2: Post-v0.1.0 Refinement](#milestone-2-post-v010-refinement)
+- [Milestone 3: FetchKit Foundation](#milestone-3-fetchkit-foundation)
 - [Backlog Candidates](#backlog-candidates)
 - [History](#history)
 
@@ -28,6 +29,7 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 - Milestone 0: Foundation - Completed
 - Milestone 1: Retrieval Defaults - Completed
 - Milestone 2: Post-v0.1.0 Refinement - Planned
+- Milestone 3: FetchKit Foundation - Planned
 
 ## Milestone 0: Foundation
 
@@ -119,10 +121,38 @@ Planned
 - [x] The package family and responsibility split are documented clearly enough to guide follow-on API decisions.
 - [x] The team has a settled decision on whether asset-enabled integration coverage belongs in optional CI, self-hosted CI, or local-only verification, and why.
 
+## Milestone 3: FetchKit Foundation
+
+### Status
+
+Planned
+
+### Scope
+
+- [ ] Define the product boundary and maintainer plan for `FetchCore` and `FetchKit`.
+- [ ] Establish `FetchCore` as the portable vocabulary for conventional document search.
+- [ ] Design a macOS-first `FetchKit` architecture with Core Data as the durable corpus store and SearchKit as the full-text indexing backend.
+- [ ] Keep the overall `SwiftlyFetch` story coherent so one local corpus can eventually support both semantic retrieval and conventional search.
+
+### Tickets
+
+- [ ] Add maintainer-facing `FetchKit` architecture guidance that explains the Core Data plus SearchKit model and its relationship to `RAGKit`.
+- [ ] Define the first `FetchCore` model and protocol candidates for document records, queries, search results, snippets, and index synchronization.
+- [ ] Decide the first Core Data document model shape and the sync boundary between stored records and the SearchKit index.
+- [ ] Decide the first public-facing `SwiftlyFetch` product wording for the family once `FetchKit` work begins landing in code.
+- [ ] Decide what iOS-first-class support means at the family level while the first concrete full-text backend remains macOS-first.
+
+### Exit Criteria
+
+- [ ] The repo has a clear maintainer plan for `FetchCore` and `FetchKit` before backend code starts landing.
+- [ ] The package-family story explains how `RAGKit`, `FetchKit`, and `SwiftlyFetch` relate without overlapping ownership.
+- [ ] The first `FetchKit` implementation pass has a concrete storage-and-indexing model instead of a vague "traditional search later" placeholder.
+
 ## Backlog Candidates
 
 - [ ] If parser-backed markdown chunking still leaves retrieval-quality gaps, add retrieval-specific chunking heuristics on top of the chosen markdown parser instead of rebuilding markdown parsing rules locally.
 - [ ] If asset-backed automation becomes important again, evaluate a self-hosted macOS runner with prewarmed assets before retrying a hosted GitHub Actions lane.
+- [ ] When `FetchKit` moves from docs into code, decide whether the first backend should live behind a SearchKit-specific module seam immediately or only after the first macOS implementation proves the stable `FetchCore` shape.
 
 ## History
 
@@ -143,4 +173,5 @@ Planned
 - Added image-reference metadata, alt-text-first markdown image handling, and a narrow raw-HTML whitelist for `img` plus `details` / `summary`.
 - Tightened markdown fallback so policy-rejected markdown does not re-enter retrieval through the plain paragraph chunker.
 - Documented the `RAGKit` / `FetchKit` / `SwiftlyFetch` family split as the intended longer-term package direction.
+- Added a dedicated `FetchKit` product-plan pass and opened the docs-first foundation milestone for the conventional-search side of the family.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.

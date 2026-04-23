@@ -1,6 +1,6 @@
 # SwiftlyFetch
 
-An Apple-first Swift Package for local retrieval, document chunking, embeddings, and knowledge-base search.
+An Apple-first Swift Package family for local document search and semantic retrieval.
 
 ## Table of Contents
 
@@ -20,19 +20,21 @@ An Apple-first Swift Package for local retrieval, document chunking, embeddings,
 
 ### What This Project Is
 
-SwiftlyFetch is the umbrella product direction for a small family of Apple-first local search packages. Today, the shipped public package surface is split into `RAGCore` for the typed retrieval models and protocols, and `RAGKit` for the default chunking, embedding, indexing, and `KnowledgeBase` implementations that power semantic retrieval.
+SwiftlyFetch is the umbrella product direction for a small family of Apple-first local search packages. The product goal is simple: hand the system a local corpus and get back a real search engine, with conventional search and semantic retrieval both living under one coherent Swift-native story.
+
+Today, the shipped public package surface is split into `RAGCore` for the typed retrieval models and protocols, and `RAGKit` for the default chunking, embedding, indexing, and `KnowledgeBase` implementations that power semantic retrieval.
 
 The intended family split is:
 
 - `RAGKit` for semantic retrieval, knowledge-base assembly, and the retrieval-quality chunking, embedding, and indexing work that supports that job
-- `FetchKit` for traditional search, especially document-oriented full-text search built around SearchKit over Core Data
+- `FetchKit` for traditional search, with Core Data as the durable document store and SearchKit as the first planned macOS full-text indexing backend
 - `SwiftlyFetch` as the umbrella story tying those sibling package surfaces together over time
 
-That intended split does not change the current package boundary: `RAGKit` still owns semantic retrieval work, not conventional document search.
+That intended split does not change the current package boundary: `RAGKit` still owns semantic retrieval work, not conventional document search. The next family step is to define `FetchCore` and `FetchKit` cleanly enough that the same local corpus can eventually power both traditional search and semantic retrieval without forcing those jobs into one module.
 
 ### Motivation
 
-The goal is to make local knowledge-base retrieval feel native and pleasant in Swift apps without turning the package into a chat framework or a giant AI abstraction layer.
+The goal is to make local search feel native and pleasant in Swift apps without turning the package into a chat framework or a giant AI abstraction layer.
 
 ## Quick Start
 
