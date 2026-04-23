@@ -1,11 +1,21 @@
 import Foundation
 import RAGCore
 
+public enum MarkdownLinkDestinationMetadataMode: Sendable {
+    case omit
+    case include
+}
+
 public struct HeadingAwareMarkdownChunker: Chunker, Sendable {
     private let paragraphChunker: ParagraphChunker
+    private let linkDestinationMetadataMode: MarkdownLinkDestinationMetadataMode
 
-    public init(paragraphChunker: ParagraphChunker = ParagraphChunker()) {
+    public init(
+        paragraphChunker: ParagraphChunker = ParagraphChunker(),
+        linkDestinationMetadataMode: MarkdownLinkDestinationMetadataMode = .omit
+    ) {
         self.paragraphChunker = paragraphChunker
+        self.linkDestinationMetadataMode = linkDestinationMetadataMode
     }
 
     public func chunks(for document: Document) throws -> [Chunk] {
@@ -13,7 +23,10 @@ public struct HeadingAwareMarkdownChunker: Chunker, Sendable {
             return try paragraphChunker.chunks(for: document)
         }
 
-        let sections = MarkdownChunkSectionScanner.sections(in: text)
+        let sections = MarkdownChunkSectionScanner.sections(
+            in: text,
+            linkDestinationMetadataMode: linkDestinationMetadataMode
+        )
         guard !sections.isEmpty else {
             return try paragraphChunker.chunks(for: document)
         }

@@ -95,9 +95,9 @@ Planned
 
 ### Scope
 
-- [ ] Replace or significantly strengthen the current markdown chunking implementation so it handles real markdown structure without widening ingestion scope beyond plain text and markdown.
-- [ ] Record the sibling-family architecture clearly: `RAGKit` for semantic retrieval, `FetchKit` for traditional document and full-text search, and `SwiftlyFetch` as the umbrella product story.
-- [ ] Decide whether Apple-asset integration coverage should stay local or move to an optional CI lane, without making fresh GitHub-hosted macOS runners a required gate.
+- [ ] Finish the remaining markdown-policy refinement work now that the package has a parser-backed chunking implementation.
+- [x] Record the sibling-family architecture clearly: `RAGKit` for semantic retrieval, `FetchKit` for traditional document and full-text search over SearchKit and Core Data, and `SwiftlyFetch` as the umbrella product story.
+- [x] Add a separate GitHub-hosted macOS CI lane for Apple-asset integration coverage while keeping the default required package-validation path asset-independent.
 
 ### Tickets
 
@@ -108,21 +108,21 @@ Planned
 - [x] Keep block quotes secondary by default, but promote them when quote-heavy documents would otherwise hide a meaningful share of the retrieval surface.
 - [x] Add table-row chunking with header-aware text and chunk metadata so markdown tables carry usable retrieval structure.
 - [x] Decide the default link and reference policy so visible anchor text stays primary and raw destinations remain secondary unless a concrete retrieval need proves otherwise.
-- [ ] Decide whether any future link-destination metadata should be opt-in and chunk-scoped rather than a default retrieval surface.
-- [ ] Record the package-family direction in maintainer docs so future `FetchCore` and `FetchKit` work does not leak conventional search responsibilities into `RAGKit`.
-- [ ] Evaluate an optional asset-enabled verification path for `RUN_NL_INTEGRATION_TESTS=1`, while keeping required GitHub-hosted CI on the default non-asset path.
+- [x] Add opt-in, chunk-scoped link-destination metadata without widening default chunk text.
+- [x] Record the package-family direction in maintainer docs and public docs so future `FetchCore` and `FetchKit` work does not leak conventional search responsibilities into `RAGKit`.
+- [x] Add a GitHub-hosted `RUN_NL_INTEGRATION_TESTS=1` verification lane while keeping required default package validation on the non-asset path.
 
 ### Exit Criteria
 
 - [ ] The markdown ingestion path is materially more correct and better covered, while still staying retrieval-first and Apple-first.
 - [ ] Markdown chunk metadata and chunk text both carry enough local structure to support high-quality retrieval and downstream fetching or indexing work.
-- [ ] The package family and responsibility split are documented clearly enough to guide follow-on API decisions.
-- [ ] The team has a settled decision on whether asset-enabled integration coverage belongs in optional CI, self-hosted CI, or local-only verification, and why.
+- [x] The package family and responsibility split are documented clearly enough to guide follow-on API decisions.
+- [x] The team has a settled decision on whether asset-enabled integration coverage belongs in optional CI, self-hosted CI, or local-only verification, and why.
 
 ## Backlog Candidates
 
 - [ ] If parser-backed markdown chunking still leaves retrieval-quality gaps, add retrieval-specific chunking heuristics on top of the chosen markdown parser instead of rebuilding markdown parsing rules locally.
-- [ ] Add an optional separate CI lane for Apple-asset integration coverage once a reliable asset-enabled runner strategy exists, most likely on self-hosted macOS or another runner with preinstalled assets.
+- [ ] If the GitHub-hosted asset lane proves too slow or flaky over time, evaluate a self-hosted macOS runner with prewarmed assets before widening the default validation gate.
 
 ## History
 
@@ -138,4 +138,6 @@ Planned
 - Switched markdown chunking onto a parser-backed implementation, added broader markdown-structure tests, preserved list semantics in chunk text and metadata, and added quote-heavy promotion for block quotes.
 - Added header-aware table-row chunking and moved the next markdown policy focus to links and references.
 - Settled the default link/reference policy so anchor text stays primary, raw destinations stay secondary, and reference definitions do not become standalone retrieval chunks.
-- Deferred link destinations to a future opt-in chunk-metadata policy instead of making them part of the default retrieval surface.
+- Added opt-in chunk-scoped link-destination metadata while keeping raw destinations out of default chunk text.
+- Documented the `RAGKit` / `FetchKit` / `SwiftlyFetch` family split as the intended longer-term package direction.
+- Added a separate GitHub-hosted `macos-15` integration lane for Natural Language asset-backed coverage while keeping the default validation path asset-independent.

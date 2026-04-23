@@ -290,6 +290,34 @@ struct ChunkerTests {
         #expect(chunks.count == 1)
         #expect(chunks[0].text == "References\n\nRead the Swift documentation for details.")
         #expect(!chunks[0].text.contains("https://swift.org/documentation"))
+        #expect(chunks[0].metadata["rag.linkDestinations"] == nil)
+        #expect(chunks[0].metadata["rag.linkDestinationCount"] == nil)
+    }
+
+    @Test("HeadingAwareMarkdownChunker can opt in to link destinations as chunk metadata")
+    func headingAwareMarkdownChunkerCanOptIntoLinkDestinationMetadata() throws {
+        let chunker = HeadingAwareMarkdownChunker(linkDestinationMetadataMode: .include)
+        let document = Document(
+            id: "doc-link-metadata",
+            content: .markdown(
+                """
+                # References
+
+                Read the [Swift documentation](https://swift.org/documentation) and the [Apple docs](https://developer.apple.com/documentation) for details.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "References\n\nRead the Swift documentation and the Apple docs for details.")
+        #expect(!chunks[0].text.contains("https://swift.org/documentation"))
+        #expect(chunks[0].metadata["rag.linkDestinationCount"] == .int(2))
+        #expect(
+            chunks[0].metadata["rag.linkDestinations"] ==
+                .string("https://swift.org/documentation\nhttps://developer.apple.com/documentation")
+        )
     }
 
     @Test("HeadingAwareMarkdownChunker does not emit standalone chunks for reference link definitions")
@@ -314,6 +342,30 @@ struct ChunkerTests {
         #expect(chunks[0].text == "References\n\nRead the Swift guide for details.")
         #expect(!chunks[0].text.contains("swift-guide"))
         #expect(!chunks[0].text.contains("https://swift.org/documentation"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker records reference-link destinations in metadata when opted in")
+    func headingAwareMarkdownChunkerRecordsReferenceLinkDestinationsWhenOptedIn() throws {
+        let chunker = HeadingAwareMarkdownChunker(linkDestinationMetadataMode: .include)
+        let document = Document(
+            id: "doc-reference-link-metadata",
+            content: .markdown(
+                """
+                # References
+
+                Read the [Swift guide][swift-guide] for details.
+
+                [swift-guide]: https://swift.org/documentation
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "References\n\nRead the Swift guide for details.")
+        #expect(chunks[0].metadata["rag.linkDestinationCount"] == .int(1))
+        #expect(chunks[0].metadata["rag.linkDestinations"] == .string("https://swift.org/documentation"))
     }
 }
 

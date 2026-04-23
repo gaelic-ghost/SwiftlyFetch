@@ -13,8 +13,14 @@ struct MarkdownChunkSection {
 enum MarkdownChunkSectionScanner {
     private static let blockQuotePromotionThreshold = 1.0 / 3.0
 
-    static func sections(in text: String) -> [MarkdownChunkSection] {
-        var collector = MarkdownSectionCollector(source: text)
+    static func sections(
+        in text: String,
+        linkDestinationMetadataMode: MarkdownLinkDestinationMetadataMode = .omit
+    ) -> [MarkdownChunkSection] {
+        var collector = MarkdownSectionCollector(
+            source: text,
+            linkDestinationMetadataMode: linkDestinationMetadataMode
+        )
         let document = Markdown.Document(parsing: text)
         collector.visit(document)
         return promotedSections(from: collector.sections)
@@ -44,13 +50,18 @@ enum MarkdownChunkSectionScanner {
 private struct MarkdownSectionCollector: MarkupWalker {
     let source: String
     private let sourceMap: MarkdownSourceMap
+    private let linkDestinationMetadataMode: MarkdownLinkDestinationMetadataMode
     fileprivate private(set) var sections: [MarkdownChunkSectionCandidate] = []
     private var headingPath: [(level: Int, title: String)] = []
     private var lastLeadInParagraphByHeadingPath: [[String]: String] = [:]
 
-    init(source: String) {
+    init(
+        source: String,
+        linkDestinationMetadataMode: MarkdownLinkDestinationMetadataMode
+    ) {
         self.source = source
         self.sourceMap = MarkdownSourceMap(source: source)
+        self.linkDestinationMetadataMode = linkDestinationMetadataMode
     }
 
     mutating func visitHeading(_ heading: Heading) {
@@ -93,7 +104,10 @@ private struct MarkdownSectionCollector: MarkupWalker {
                     sourceRange: sourceRange,
                     preservesBodyAsSingleChunk: true,
                     blockKind: insideBlockQuote ? .blockQuote : .listItem,
-                    metadataOverrides: listContext.metadataOverrides
+                    metadataOverrides: metadataByAddingLinkDestinations(
+                        to: listContext.metadataOverrides,
+                        from: paragraph
+                    )
                 )
             )
             return
@@ -106,7 +120,10 @@ private struct MarkdownSectionCollector: MarkupWalker {
                 sourceRange: sourceRange,
                 preservesBodyAsSingleChunk: false,
                 blockKind: insideBlockQuote ? .blockQuote : .paragraph,
-                metadataOverrides: [:]
+                metadataOverrides: metadataByAddingLinkDestinations(
+                    to: [:],
+                    from: paragraph
+                )
             )
         )
 
@@ -237,6 +254,31 @@ private struct MarkdownSectionCollector: MarkupWalker {
         return metadata
     }
 
+    private func metadataByAddingLinkDestinations(
+        to metadata: [String: MetadataValue],
+        from markup: Markup
+    ) -> [String: MetadataValue] {
+        guard linkDestinationMetadataMode == .include else {
+            return metadata
+        }
+
+        let destinations = linkDestinations(in: markup)
+        guard !destinations.isEmpty else {
+            return metadata
+        }
+
+        var updatedMetadata = metadata
+        updatedMetadata["rag.linkDestinationCount"] = .int(destinations.count)
+        updatedMetadata["rag.linkDestinations"] = .string(destinations.joined(separator: "\n"))
+        return updatedMetadata
+    }
+
+    private func linkDestinations(in markup: Markup) -> [String] {
+        var collector = LinkDestinationCollector()
+        collector.visit(markup)
+        return collector.destinations
+    }
+
     private func previousSiblingParagraph(for markup: Markup) -> Paragraph? {
         guard let parent = markup.parent, markup.indexInParent > 0 else {
             return nil
@@ -265,6 +307,23 @@ private struct ListContext {
     let leadInText: String?
     let itemPrefix: String?
     let metadataOverrides: [String: MetadataValue]
+}
+
+private struct LinkDestinationCollector: MarkupWalker {
+    fileprivate private(set) var destinations: [String] = []
+    private var seenDestinations: Set<String> = []
+
+    mutating func visitLink(_ link: Link) {
+        let destination = link.destination?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !destination.isEmpty, !seenDestinations.contains(destination) else {
+            descendInto(link)
+            return
+        }
+
+        destinations.append(destination)
+        seenDestinations.insert(destination)
+        descendInto(link)
+    }
 }
 
 private enum MarkdownBlockKind {

@@ -25,6 +25,16 @@ This package is not trying to become:
 
 The durable value is retrieval. Generation surfaces churn quickly; retrieval workflows, document preparation, indexing, and result packaging are much more likely to remain stable.
 
+## Package Family Direction
+
+The intended family split is:
+
+- `RAGCore` and `RAGKit` for semantic retrieval
+- future `FetchCore` and `FetchKit` for traditional document search, especially full-text search built around SearchKit over Core Data
+- `SwiftlyFetch` as the umbrella product story tying those sibling package surfaces together
+
+In plain language: `RAGKit` is where semantic retrieval and its related chunking, embedding, indexing, and knowledge-base behavior should keep growing. `FetchKit` is the future home for conventional search responsibilities. `SwiftlyFetch` is the name that should describe the whole family rather than forcing those two jobs into one package surface.
+
 ## Why This Still Makes Sense
 
 Swift and Apple platforms now have enough building blocks for a real local-first retrieval package, but the space still looks fragmented rather than settled.
@@ -150,14 +160,13 @@ Implemented today:
 - list-item chunks now preserve immediate lead-in context in chunk text and also expose chunk metadata for block kind, list kind, lead-in, ordinal, and heading path
 - block quotes stay secondary by default but are promoted into the primary retrieval stream when they make up more than one third of the document's chunkable block structure
 - markdown tables now produce one retrieval chunk per body row with header-aware text and table-row metadata
-- inline links and reference links now default to visible anchor text in chunk text, while raw destinations and reference definitions stay secondary and do not become standalone retrieval chunks
+- inline links and reference links now default to visible anchor text in chunk text, while raw destinations and reference definitions stay secondary and do not become standalone retrieval chunks unless a caller explicitly opts into chunk metadata for destinations
 - deterministic tests cover the main retrieval flow and the Natural Language wrapper seam
-- an opt-in integration test target exists for real Natural Language embedding coverage and stays non-blocking unless explicitly enabled
+- an opt-in integration test target exists for real Natural Language embedding coverage and now runs in a separate GitHub-hosted `macos-15` CI lane while staying outside the default asset-independent package-test path
 
 Still intentionally incomplete:
 
 - markdown policy refinement for additional block kinds and future evolution
-- future opt-in link-destination metadata policy on top of the parser-backed markdown structure
 - optional future retrieval-default refinements only if concrete caller needs emerge beyond the current exclusion, ordered-comparison, and grouped-context defaults
 
 ## v1 Scope
@@ -217,7 +226,8 @@ Current status:
 - list semantics are preserved in both chunk text and chunk metadata for retrieval quality and downstream indexing use
 - quote-heavy documents can promote block quotes into the primary retrieval stream when quoted material is a substantial share of the document structure
 - markdown tables now produce header-aware row chunks for retrieval
-- the next chunking work is policy refinement for links and references, not first-parser adoption
+- link destinations can now be recorded in chunk metadata through an explicit opt-in mode, while default chunk text stays anchor-text-first
+- the next chunking work is policy refinement beyond the current links-and-references baseline, not first-parser adoption
 
 ## Embedding Plan
 
@@ -358,13 +368,14 @@ Current status:
 - the deterministic wrapper and knowledge-base tests are in place
 - the opt-in Natural Language integration target exists
 - real Apple-backed integration coverage now checks semantic retrieval behavior rather than only non-empty normalized vectors
-- default CI should prove `swift build` and `swift test` on the ordinary macOS path, while Apple-asset integration coverage stays opt-in until a reliable asset-enabled runner story exists
+- default CI proves `swift build` and `swift test` on the ordinary macOS path, while a separate `macos-15` GitHub-hosted lane runs the asset-backed Natural Language integration target
 
 Current CI position:
 
-- do not make downloaded Apple embedding assets a required dependency of GitHub-hosted macOS CI jobs
-- treat fresh hosted runners as an acceptable place for ordinary non-asset verification, not as the source of truth for asset-required coverage
-- if asset-required automation becomes important later, prefer an optional hosted lane or a self-hosted macOS runner with known asset state over widening the required default gate
+- keep the default validation job free of Apple asset requirements
+- use a separate GitHub-hosted `macos-15` lane for `RUN_NL_INTEGRATION_TESTS=1`
+- rely on `NLContextualEmbedding.requestAssets()` at runtime in that lane instead of assuming preinstalled assets on the fresh hosted VM
+- if the hosted asset lane becomes too slow or flaky later, prefer a self-hosted macOS runner with known asset state over widening the default gate
 
 ## Package Structure Target
 
@@ -420,21 +431,19 @@ The first concrete implementation pass should happen in this order:
 5. Implement the `KnowledgeBase` actor facade. Completed.
 6. Add `NaturalLanguageEmbedder` backed by `NLContextualEmbedding`. Completed.
 7. Add tests that target the public wrapper while injecting a fake backend. Completed.
-8. Add opt-in integration tests for real Natural Language embedding behavior. Partially completed; the target exists and basic assertions are in place, but the semantic assertions should be strengthened.
+8. Add opt-in integration tests for real Natural Language embedding behavior. Completed.
 9. Add a heading-aware markdown chunker as the first major retrieval-quality improvement. Completed.
 10. Strengthen the real Natural Language integration assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness. Completed.
 11. Tighten retrieval defaults around metadata filtering and context assembly without widening the package into chat or generation concerns. Completed with explicit exclusion filters, ordered typed comparisons, grouped annotated output, smarter duplicate suppression, and refined budget handling.
-12. Keep default CI focused on `swift build` and `swift test`, and treat Apple-asset integration coverage as a separate opt-in verification path until the runner and asset story are stable.
+12. Keep default CI focused on `swift build` and `swift test`, and run Apple-asset integration coverage in a separate GitHub-hosted `macos-15` lane.
 
 That sequence matters because it gets a fully testable retrieval loop working before the repo takes on Apple asset-management complexity.
 
 ## Markdown Refinement Direction
 
-The current heading-aware markdown chunker is a useful first retrieval-quality step, but it is still a lightweight line-based heading scanner rather than a full markdown parser.
+The current heading-aware markdown chunker already uses a real parser through [swift-markdown](https://github.com/swiftlang/swift-markdown), which was the right call for the first public release.
 
-That is acceptable for the first release, but it should not become the long-term parsing strategy by inertia.
-
-The next markdown pass should start by evaluating whether the repository should adopt a real parser, with [swift-markdown](https://github.com/swiftlang/swift-markdown) as the first candidate.
+That does not mean markdown policy is finished. It means the remaining work should build on the parser-backed structure instead of drifting back toward ad hoc local parsing rules.
 
 The practical decision rule should be:
 
@@ -444,7 +453,7 @@ The practical decision rule should be:
 
 In plain language: parsing markdown syntax and deciding how retrieval chunks should be assembled are different jobs. The package should prefer borrowing the parsing job from a well-maintained parser and keep owning only the retrieval policy built on top of that structure.
 
-If `swift-markdown` is adopted later, that should be treated as an intentional scope tradeoff: one external dependency in exchange for significantly stronger markdown correctness and less parser maintenance risk in this package.
+The `swift-markdown` adoption should be treated as an intentional scope tradeoff: one external dependency in exchange for significantly stronger markdown correctness and less parser maintenance risk in this package.
 
 Current outcome:
 
@@ -489,7 +498,8 @@ Current outcome:
 - inline links and reference links now default to anchor-text-only chunk text
 - raw destinations do not pollute chunk text by default
 - reference-link definitions do not become standalone retrieval chunks
-- any future link work should focus on whether destinations belong in opt-in chunk metadata, not on putting URLs into chunk text
+- callers can now opt into chunk-scoped destination metadata when downstream indexing or fetch-oriented work needs it
+- any future link work should focus on whether additional structured link metadata is worth carrying, not on putting URLs into chunk text
 
 ## Markdown Refactor Execution Plan
 
