@@ -23,11 +23,15 @@ public struct HeadingAwareMarkdownChunker: Chunker, Sendable {
             return try paragraphChunker.chunks(for: document)
         }
 
-        let sections = MarkdownChunkSectionScanner.sections(
+        let scanResult = MarkdownChunkSectionScanner.scan(
             in: text,
             linkDestinationMetadataMode: linkDestinationMetadataMode
         )
+        let sections = scanResult.sections
         guard !sections.isEmpty else {
+            guard scanResult.shouldFallbackToParagraphChunker else {
+                return []
+            }
             return try paragraphChunker.chunks(for: document)
         }
 
@@ -76,6 +80,12 @@ public struct HeadingAwareMarkdownChunker: Chunker, Sendable {
             }
         }
 
-        return chunks.isEmpty ? try paragraphChunker.chunks(for: document) : chunks
+        if chunks.isEmpty {
+            return scanResult.shouldFallbackToParagraphChunker
+                ? try paragraphChunker.chunks(for: document)
+                : []
+        }
+
+        return chunks
     }
 }

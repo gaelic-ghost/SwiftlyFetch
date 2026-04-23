@@ -90,6 +90,8 @@ struct ChunkerTests {
                 """
                 # Fruit Guide
 
+                Intro paragraph before the code block.
+
                 ```markdown
                 ## Not A Real Heading
                 ```
@@ -101,8 +103,476 @@ struct ChunkerTests {
 
         let chunks = try chunker.chunks(for: document)
 
+        #expect(chunks.count == 2)
+        #expect(chunks[0].text == "Fruit Guide\n\nIntro paragraph before the code block.")
+        #expect(chunks[1].text == "Fruit Guide\n\nReal paragraph after the code block.")
+    }
+
+    @Test("HeadingAwareMarkdownChunker keeps code block language metadata even when code stays secondary")
+    func headingAwareMarkdownChunkerKeepsCodeLanguageMetadataWhenCodeStaysSecondary() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-code-metadata",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                Apples are bright and crisp.
+
+                ```swift
+                struct AppleGuide {}
+                ```
+
+                Oranges are juicy and sweet.
+
+                Bananas are soft and mellow.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 3)
+        #expect(chunks.map(\.text) == [
+            "Fruit Guide\n\nApples are bright and crisp.",
+            "Fruit Guide\n\nOranges are juicy and sweet.",
+            "Fruit Guide\n\nBananas are soft and mellow.",
+        ])
+        #expect(chunks.allSatisfy { $0.metadata["rag.hasCodeBlocks"] == .bool(true) })
+        #expect(chunks.allSatisfy { $0.metadata["rag.codeBlockLanguageCount"] == .int(1) })
+        #expect(chunks.allSatisfy { $0.metadata["rag.codeBlockLanguages"] == .string("swift") })
+    }
+
+    @Test("HeadingAwareMarkdownChunker promotes code blocks when they are a large share of chunkable blocks")
+    func headingAwareMarkdownChunkerPromotesCodeHeavyDocuments() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-code-heavy",
+            content: .markdown(
+                """
+                # Fruit Tools
+
+                Intro paragraph.
+
+                ```swift
+                struct AppleTool {}
+                ```
+
+                ```python
+                def orange_tool():
+                    return "citrus"
+                ```
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 3)
+        #expect(chunks[0].text == "Fruit Tools\n\nIntro paragraph.")
+        #expect(chunks[1].text == "Fruit Tools\n\nLanguage: swift\n\nstruct AppleTool {}")
+        #expect(chunks[2].text == "Fruit Tools\n\nLanguage: python\n\ndef orange_tool():\n    return \"citrus\"")
+        #expect(chunks[1].metadata["rag.blockKind"] == .string("codeBlock"))
+        #expect(chunks[1].metadata["rag.codeLanguage"] == .string("swift"))
+        #expect(chunks[2].metadata["rag.codeLanguage"] == .string("python"))
+        #expect(chunks.allSatisfy { $0.metadata["rag.codeBlockLanguageCount"] == .int(2) })
+        #expect(chunks.allSatisfy { $0.metadata["rag.codeBlockLanguages"] == .string("python | swift") })
+    }
+
+    @Test("HeadingAwareMarkdownChunker treats thematic breaks as section lead-in boundaries")
+    func headingAwareMarkdownChunkerTreatsThematicBreaksAsSectionLeadIns() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-thematic-break",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                Quick note
+
+                ---
+
+                Apples are bright and crisp.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 2)
+        #expect(chunks[0].text == "Fruit Guide\n\nQuick note")
+        #expect(chunks[1].text == "Fruit Guide\n\nQuick note\n\nApples are bright and crisp.")
+        #expect(chunks[1].metadata["rag.sectionLeadIn"] == .string("Quick note"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker keeps image alt text primary and records image metadata")
+    func headingAwareMarkdownChunkerKeepsImageAltTextPrimary() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-inline-image",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                Review the ![apple diagram](images/apple.png "Apple Diagram") before setup.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
         #expect(chunks.count == 1)
-        #expect(chunks[0].text == "Fruit Guide\n\nReal paragraph after the code block.")
+        #expect(chunks[0].text == "Fruit Guide\n\nReview the apple diagram before setup.")
+        #expect(chunks[0].metadata["rag.hasImages"] == .bool(true))
+        #expect(chunks[0].metadata["rag.imageReferenceCount"] == .int(1))
+        #expect(chunks[0].metadata["rag.imageSourceCount"] == .int(1))
+        #expect(chunks[0].metadata["rag.imageSources"] == .string("images/apple.png"))
+        #expect(chunks[0].metadata["rag.imageAltTexts"] == .string("apple diagram"))
+        #expect(chunks[0].metadata["rag.imageTitles"] == .string("Apple Diagram"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker preserves reference-style image metadata")
+    func headingAwareMarkdownChunkerPreservesReferenceStyleImageMetadata() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-reference-image",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                Review the ![apple diagram][apple-image] before setup.
+
+                [apple-image]: images/apple.png "Apple Diagram"
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "Fruit Guide\n\nReview the apple diagram before setup.")
+        #expect(chunks[0].metadata["rag.hasImages"] == .bool(true))
+        #expect(chunks[0].metadata["rag.imageReferenceCount"] == .int(1))
+        #expect(chunks[0].metadata["rag.imageSourceCount"] == .int(1))
+        #expect(chunks[0].metadata["rag.imageSources"] == .string("images/apple.png"))
+        #expect(chunks[0].metadata["rag.imageAltTexts"] == .string("apple diagram"))
+        #expect(chunks[0].metadata["rag.imageTitles"] == .string("Apple Diagram"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker ignores inline HTML tags in primary chunk text")
+    func headingAwareMarkdownChunkerIgnoresInlineHTMLTagsInPrimaryChunkText() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-inline-html",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                Keep <span class="callout">this note</span> handy.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "Fruit Guide\n\nKeep this note handy.")
+        #expect(!chunks[0].text.contains("<span"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker promotes whitelisted HTML image blocks into retrieval chunks")
+    func headingAwareMarkdownChunkerPromotesHTMLImageBlocks() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-html-image",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                <img src="images/apple.png" alt="Apple Diagram" title="Cutaway">
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "Fruit Guide\n\nApple Diagram\n\nCutaway")
+        #expect(chunks[0].metadata["rag.blockKind"] == .string("image"))
+        #expect(chunks[0].metadata["rag.hasImages"] == .bool(true))
+        #expect(chunks[0].metadata["rag.imageReferenceCount"] == .int(1))
+        #expect(chunks[0].metadata["rag.imageSources"] == .string("images/apple.png"))
+        #expect(chunks[0].metadata["rag.imageAltTexts"] == .string("Apple Diagram"))
+        #expect(chunks[0].metadata["rag.imageTitles"] == .string("Cutaway"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker handles case-insensitive HTML image tags and attributes")
+    func headingAwareMarkdownChunkerHandlesCaseInsensitiveHTMLImageTags() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-html-image-uppercase",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                <IMG SRC='images/apple.png' ALT='Apple Diagram' TITLE='Cutaway' />
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "Fruit Guide\n\nApple Diagram\n\nCutaway")
+        #expect(chunks[0].metadata["rag.blockKind"] == .string("image"))
+        #expect(chunks[0].metadata["rag.imageSources"] == .string("images/apple.png"))
+        #expect(chunks[0].metadata["rag.imageAltTexts"] == .string("Apple Diagram"))
+        #expect(chunks[0].metadata["rag.imageTitles"] == .string("Cutaway"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker promotes whitelisted HTML details blocks into retrieval chunks")
+    func headingAwareMarkdownChunkerPromotesHTMLDetailsBlocks() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-html-details",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                <details>
+                <summary>Storage tips</summary>
+                Keep apples cold and dry.
+                </details>
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "Fruit Guide\n\nStorage tips\n\nKeep apples cold and dry.")
+        #expect(chunks[0].metadata["rag.blockKind"] == .string("htmlDetails"))
+        #expect(chunks[0].metadata["rag.htmlSummary"] == .string("Storage tips"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker strips nested markup inside HTML details summaries")
+    func headingAwareMarkdownChunkerStripsNestedMarkupInsideHTMLDetailsSummaries() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-html-details-nested",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                <details>
+                <summary><strong>Storage tips</strong></summary>
+                Keep <em>apples</em> cold and dry.
+                </details>
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "Fruit Guide\n\nStorage tips\n\nKeep apples cold and dry.")
+        #expect(chunks[0].metadata["rag.blockKind"] == .string("htmlDetails"))
+        #expect(chunks[0].metadata["rag.htmlSummary"] == .string("Storage tips"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker keeps unsupported HTML blocks out of retrieval chunks")
+    func headingAwareMarkdownChunkerKeepsUnsupportedHTMLBlocksOutOfRetrievalChunks() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-html-unsupported",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                Apples are bright and crisp.
+
+                <div class="layout-only">Decorative wrapper</div>
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "Fruit Guide\n\nApples are bright and crisp.")
+    }
+
+    @Test("HeadingAwareMarkdownChunker does not fall back for unsupported HTML only markdown")
+    func headingAwareMarkdownChunkerDoesNotFallbackForUnsupportedHTMLOnlyMarkdown() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-html-only",
+            content: .markdown(
+                """
+                <div class="layout-only">Decorative wrapper</div>
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.isEmpty)
+    }
+
+    @Test("HeadingAwareMarkdownChunker does not fall back for heading-only markdown")
+    func headingAwareMarkdownChunkerDoesNotFallbackForHeadingOnlyMarkdown() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-heading-only",
+            content: .markdown(
+                """
+                # Fruit Guide
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.isEmpty)
+    }
+
+    @Test("HeadingAwareMarkdownChunker does not fall back for reference-definition-only markdown")
+    func headingAwareMarkdownChunkerDoesNotFallbackForReferenceDefinitionOnlyMarkdown() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-reference-definitions-only",
+            content: .markdown(
+                """
+                [swift-guide]: https://swift.org/documentation
+                [apple-docs]: https://developer.apple.com/documentation
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.isEmpty)
+    }
+
+    @Test("HeadingAwareMarkdownChunker ignores empty headings when building heading context")
+    func headingAwareMarkdownChunkerIgnoresEmptyHeadings() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-empty-headings",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                ##
+
+                ###
+
+                Apples are bright and crisp.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "Fruit Guide\n\nApples are bright and crisp.")
+    }
+
+    @Test("HeadingAwareMarkdownChunker skips heading-only sections without disturbing the next section path")
+    func headingAwareMarkdownChunkerSkipsHeadingOnlySections() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-heading-only-section",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                ## Empty Section
+
+                ## Apples
+
+                Bright and crisp.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 1)
+        #expect(chunks[0].text == "Fruit Guide\nApples\n\nBright and crisp.")
+    }
+
+    @Test("HeadingAwareMarkdownChunker keeps consecutive thematic breaks from duplicating section lead-ins")
+    func headingAwareMarkdownChunkerDoesNotDuplicateLeadInsAcrossConsecutiveThematicBreaks() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-consecutive-breaks",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                Quick note
+
+                ---
+
+                ---
+
+                Apples are bright and crisp.
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 2)
+        #expect(chunks[0].text == "Fruit Guide\n\nQuick note")
+        #expect(chunks[1].text == "Fruit Guide\n\nQuick note\n\nApples are bright and crisp.")
+        #expect(chunks[1].metadata["rag.sectionLeadIn"] == .string("Quick note"))
+    }
+
+    @Test("HeadingAwareMarkdownChunker composes code image and details policies in mixed markdown documents")
+    func headingAwareMarkdownChunkerComposesMixedMarkdownPolicies() throws {
+        let chunker = HeadingAwareMarkdownChunker()
+        let document = Document(
+            id: "doc-mixed-markdown",
+            content: .markdown(
+                """
+                # Fruit Guide
+
+                ![apple diagram](images/apple.png "Apple Diagram")
+
+                ```swift
+                struct AppleGuide {}
+                ```
+
+                ```python
+                def orange_guide():
+                    return "citrus"
+                ```
+
+                <details>
+                <summary>Storage tips</summary>
+                Keep apples cold and dry.
+                </details>
+                """
+            )
+        )
+
+        let chunks = try chunker.chunks(for: document)
+
+        #expect(chunks.count == 4)
+        #expect(chunks[0].text == "Fruit Guide\n\napple diagram")
+        #expect(chunks[0].metadata["rag.hasImages"] == .bool(true))
+        #expect(chunks[0].metadata["rag.imageSources"] == .string("images/apple.png"))
+        #expect(chunks[1].metadata["rag.blockKind"] == .string("codeBlock"))
+        #expect(chunks[1].metadata["rag.codeLanguage"] == .string("swift"))
+        #expect(chunks[2].metadata["rag.blockKind"] == .string("codeBlock"))
+        #expect(chunks[2].metadata["rag.codeLanguage"] == .string("python"))
+        #expect(chunks[3].text == "Fruit Guide\n\nStorage tips\n\nKeep apples cold and dry.")
+        #expect(chunks[3].metadata["rag.blockKind"] == .string("htmlDetails"))
+        #expect(chunks.allSatisfy { $0.metadata["rag.hasCodeBlocks"] == .bool(true) })
+        #expect(chunks.allSatisfy { $0.metadata["rag.codeBlockLanguageCount"] == .int(2) })
+        #expect(chunks.allSatisfy { $0.metadata["rag.codeBlockLanguages"] == .string("python | swift") })
     }
 
     @Test("HeadingAwareMarkdownChunker splits list items into retrieval-friendly chunks")

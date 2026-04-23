@@ -139,5 +139,8 @@ Planned
 - Added header-aware table-row chunking and moved the next markdown policy focus to links and references.
 - Settled the default link/reference policy so anchor text stays primary, raw destinations stay secondary, and reference definitions do not become standalone retrieval chunks.
 - Added opt-in chunk-scoped link-destination metadata while keeping raw destinations out of default chunk text.
+- Added document-level code-language metadata, code-block promotion for code-heavy documents, and thematic-break section lead-ins.
+- Added image-reference metadata, alt-text-first markdown image handling, and a narrow raw-HTML whitelist for `img` plus `details` / `summary`.
+- Tightened markdown fallback so policy-rejected markdown does not re-enter retrieval through the plain paragraph chunker.
 - Documented the `RAGKit` / `FetchKit` / `SwiftlyFetch` family split as the intended longer-term package direction.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.

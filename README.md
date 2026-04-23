@@ -93,6 +93,10 @@ Current defaults:
 - metadata filtering supports explicit exclusions, ordered comparisons for `int`, `double`, and `date`, plus case-insensitive `startsWith` and `endsWith` string matching
 - markdown list items keep heading and immediate lead-in context in chunk text, and also carry structured chunk metadata for list kind, lead-in, ordinal, and heading path
 - markdown block quotes stay secondary by default, but are promoted into the primary retrieval stream when they make up more than one third of the document's chunkable block structure
+- markdown code blocks stay secondary by default, but promoted code-heavy documents emit code chunks with language metadata, and all chunks from a document can carry document-level code-language metadata
+- markdown thematic breaks act as section-boundary hints, carrying a short lead-in into the next chunk instead of becoming their own retrieval chunks
+- markdown images keep alt text primary in chunk text while recording image references as chunk metadata, and whitelisted HTML blocks currently cover `img` plus `details` / `summary`
+- markdown fallback is selective: ordinary supported prose still chunks normally, but policy-rejected markdown like unsupported raw-HTML-only or reference-definition-only content does not fall back through the plain paragraph chunker
 - `makeContext(...)` suppresses redundant same-document chunk text, groups annotated output by document, and skips annotated sections that only have room for labels
 
 Supported today:
@@ -101,7 +105,7 @@ Supported today:
 - use deterministic hashing embeddings for tests, previews, and fully local examples
 - use Apple Natural Language embeddings for on-device semantic retrieval on supported platforms
 - narrow retrieval with typed metadata filters
-- preserve meaningful markdown structure for retrieval, including heading paths, list semantics, and quote-heavy documents
+- preserve meaningful markdown structure for retrieval, including heading paths, list semantics, quote-heavy documents, code-heavy documents, short section breaks, images, and a narrow raw-HTML whitelist
 - turn ranked search results into plain or annotated context text for downstream UI or model consumers
 
 ## Development

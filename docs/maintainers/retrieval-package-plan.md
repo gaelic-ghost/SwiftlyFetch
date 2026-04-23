@@ -159,6 +159,10 @@ Implemented today:
 - markdown chunking now uses a parser-backed internal section model built on [swift-markdown](https://github.com/swiftlang/swift-markdown) instead of the earlier line-based heading scanner
 - list-item chunks now preserve immediate lead-in context in chunk text and also expose chunk metadata for block kind, list kind, lead-in, ordinal, and heading path
 - block quotes stay secondary by default but are promoted into the primary retrieval stream when they make up more than one third of the document's chunkable block structure
+- code blocks stay secondary by default but are promoted into the primary retrieval stream when they make up more than one third of a document's chunkable block structure, and code languages are exposed through chunk and document-level metadata
+- thematic breaks act as section-boundary hints that can carry a short lead-in into the next retrieval chunk instead of becoming standalone chunk text
+- markdown images keep alt text primary while carrying image-reference metadata, and raw HTML only contributes retrieval chunks for a narrow whitelist that currently includes `img` plus `details` / `summary`
+- markdown fallback is now selective, so parser-backed policy decisions remain authoritative instead of automatically dropping back to plain paragraph chunking for rejected markdown-only inputs
 - markdown tables now produce one retrieval chunk per body row with header-aware text and table-row metadata
 - inline links and reference links now default to visible anchor text in chunk text, while raw destinations and reference definitions stay secondary and do not become standalone retrieval chunks unless a caller explicitly opts into chunk metadata for destinations
 - deterministic tests cover the main retrieval flow and the Natural Language wrapper seam
@@ -225,6 +229,10 @@ Current status:
 - heading-aware markdown chunking is implemented, parser-backed, and now backs the default markdown path
 - list semantics are preserved in both chunk text and chunk metadata for retrieval quality and downstream indexing use
 - quote-heavy documents can promote block quotes into the primary retrieval stream when quoted material is a substantial share of the document structure
+- code-heavy documents can promote code blocks into the primary retrieval stream while still exposing language metadata on all chunks from the document
+- thematic breaks can carry short section lead-ins into the next retrieval chunk without becoming standalone chunks
+- markdown images and a narrow raw-HTML whitelist now have explicit retrieval behavior instead of falling through generic plain-text rendering
+- policy-rejected markdown-only inputs no longer fall back to plain paragraph chunking
 - markdown tables now produce header-aware row chunks for retrieval
 - link destinations can now be recorded in chunk metadata through an explicit opt-in mode, while default chunk text stays anchor-text-first
 - the next chunking work is policy refinement beyond the current links-and-references baseline, not first-parser adoption
@@ -461,6 +469,10 @@ Current outcome:
 - chunk text still carries the local structure the embedder needs for high-quality retrieval
 - chunk metadata now also carries structured list and heading information for downstream fetching, indexing, or filtering work
 - block quotes are still not first-class by default, but quote-heavy documents can promote them into the primary retrieval stream when they cross the current one-third block-structure threshold
+- code blocks are still secondary by default, but code-heavy documents can promote them into the primary retrieval stream and carry code-language metadata
+- thematic breaks can turn a short preceding paragraph into section context for the next chunk instead of becoming retrieval text themselves
+- image alt text stays primary, image sources and titles stay in metadata, and raw HTML remains whitelist-only so layout wrappers do not pollute retrieval text
+- fallback now acts as a rescue path instead of a second markdown policy, so rejected markdown-only content returns no chunks instead of sneaking back in as plain text
 
 ## Tables And Links Direction
 
@@ -551,7 +563,7 @@ The parser does not answer the retrieval policy questions by itself. Before the 
 
 - whether heading text stays a prefix on chunk text as it does today
 - whether list items should merge into nearby prose or split into their own chunks
-- whether fenced code blocks should be skipped, preserved, or normalized specially for retrieval
+- how fenced code blocks should behave for retrieval and promotion
 - whether block quotes should stay inline with surrounding text or become separate chunk material
 - how preamble text before the first heading should behave
 
@@ -560,7 +572,8 @@ The default recommendation is conservative:
 - keep heading-prefix context
 - preserve preamble text as chunks without heading context
 - treat ordinary prose and list content as chunkable text
-- skip code blocks in the first parser-backed pass unless a concrete retrieval use case proves they help
+- keep code blocks secondary by default, but promote them when they are a meaningful share of the document
+- treat thematic breaks as section-boundary hints rather than standalone retrieval chunks
 
 ### Phase 5: Swap The Chunker Behind The Existing Public API
 
