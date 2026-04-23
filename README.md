@@ -20,9 +20,15 @@ An Apple-first Swift Package for local retrieval, document chunking, embeddings,
 
 ### What This Project Is
 
-SwiftlyFetch is a retrieval-first Swift package for Apple-platform apps. The current public package surface is split into `RAGCore` for the typed retrieval models and protocols, and `RAGKit` for the default chunking, embedding, indexing, and `KnowledgeBase` implementations.
+SwiftlyFetch is the umbrella product direction for a small family of Apple-first local search packages. Today, the shipped public package surface is split into `RAGCore` for the typed retrieval models and protocols, and `RAGKit` for the default chunking, embedding, indexing, and `KnowledgeBase` implementations that power semantic retrieval.
 
-Longer-term, `SwiftlyFetch` is also intended to be the umbrella product name that can sit above this semantic-retrieval surface and a sibling traditional document and full-text-search surface built around `FetchCore` and `FetchKit`. That future family split does not change the current package boundary: `RAGKit` still owns semantic retrieval work, not conventional document search.
+The intended family split is:
+
+- `RAGKit` for semantic retrieval, knowledge-base assembly, and the retrieval-quality chunking, embedding, and indexing work that supports that job
+- `FetchKit` for traditional search, especially document-oriented full-text search built around SearchKit over Core Data
+- `SwiftlyFetch` as the umbrella story tying those sibling package surfaces together over time
+
+That intended split does not change the current package boundary: `RAGKit` still owns semantic retrieval work, not conventional document search.
 
 ### Motivation
 
@@ -69,10 +75,19 @@ let localKB = try await KnowledgeBase.hashingDefault()
 let appleKB = try await KnowledgeBase.naturalLanguageDefault(languageHint: "en")
 ```
 
+If a caller needs raw markdown link destinations for downstream indexing or fetch-oriented work, opt in at the chunker boundary instead of widening default chunk text:
+
+```swift
+import RAGKit
+
+let chunker = HeadingAwareMarkdownChunker(linkDestinationMetadataMode: .include)
+```
+
 Current defaults:
 
 - plain text uses paragraph chunking
 - markdown uses parser-backed heading-aware chunking
+- markdown link destinations stay out of chunk text by default, but `HeadingAwareMarkdownChunker(linkDestinationMetadataMode: .include)` can record raw destinations in chunk metadata when downstream indexing or fetch-oriented work needs them
 - `hashingDefault()` gives a deterministic local path for tests and examples
 - `naturalLanguageDefault()` uses the Apple Natural Language backend on supported platforms
 - metadata filtering supports explicit exclusions, ordered comparisons for `int`, `double`, and `date`, plus case-insensitive `startsWith` and `endsWith` string matching
@@ -116,6 +131,8 @@ Opt-in Natural Language integration coverage is available when you explicitly en
 ```sh
 RUN_NL_INTEGRATION_TESTS=1 swift test --filter NaturalLanguageEmbedderIntegrationTests
 ```
+
+That Natural Language verification is local-only for now. A GitHub-hosted `macos-15` lane was able to start the asset-backed test path, but the hosted run sat in the Natural Language integration step until the job timeout, so the default GitHub Actions workflow stays asset-independent.
 
 ## Repo Structure
 

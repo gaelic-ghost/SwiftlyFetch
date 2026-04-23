@@ -84,9 +84,9 @@ If the package needs to understand more markdown structure, that should normally
 
 The next markdown priorities should be:
 
-- future opt-in link-destination metadata policy, with visible anchor text already primary and raw destinations already secondary by default
+- downstream use of the new opt-in link-destination metadata policy, with visible anchor text still primary and raw destinations still secondary by default
 
-The table pass is now in place through row-level chunking and header-aware rendering, and the default link/reference text policy is now settled, so the next markdown-policy work should focus on whether link destinations deserve opt-in chunk metadata.
+The table pass is now in place through row-level chunking and header-aware rendering, and link destinations can now be exposed through opt-in chunk metadata, so the next markdown-policy work should focus on whether additional link-related structure is genuinely useful for downstream indexing or fetch-oriented consumers.
 
 ## Metadata Filtering Scope
 
