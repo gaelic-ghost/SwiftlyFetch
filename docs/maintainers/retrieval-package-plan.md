@@ -162,7 +162,7 @@ Implemented today:
 - markdown tables now produce one retrieval chunk per body row with header-aware text and table-row metadata
 - inline links and reference links now default to visible anchor text in chunk text, while raw destinations and reference definitions stay secondary and do not become standalone retrieval chunks unless a caller explicitly opts into chunk metadata for destinations
 - deterministic tests cover the main retrieval flow and the Natural Language wrapper seam
-- an opt-in integration test target exists for real Natural Language embedding coverage and now runs in a separate GitHub-hosted `macos-15` CI lane while staying outside the default asset-independent package-test path
+- an opt-in integration test target exists for real Natural Language embedding coverage and remains a local-only verification path for now because the GitHub-hosted `macos-15` attempt timed out in the Natural Language step
 
 Still intentionally incomplete:
 
@@ -368,14 +368,14 @@ Current status:
 - the deterministic wrapper and knowledge-base tests are in place
 - the opt-in Natural Language integration target exists
 - real Apple-backed integration coverage now checks semantic retrieval behavior rather than only non-empty normalized vectors
-- default CI proves `swift build` and `swift test` on the ordinary macOS path, while a separate `macos-15` GitHub-hosted lane runs the asset-backed Natural Language integration target
+- default CI proves `swift build` and `swift test` on the ordinary macOS path, while the asset-backed Natural Language integration target stays outside GitHub-hosted CI for now
 
 Current CI position:
 
 - keep the default validation job free of Apple asset requirements
-- use a separate GitHub-hosted `macos-15` lane for `RUN_NL_INTEGRATION_TESTS=1`
-- rely on `NLContextualEmbedding.requestAssets()` at runtime in that lane instead of assuming preinstalled assets on the fresh hosted VM
-- if the hosted asset lane becomes too slow or flaky later, prefer a self-hosted macOS runner with known asset state over widening the default gate
+- keep `RUN_NL_INTEGRATION_TESTS=1` as explicit local-only verification for now
+- record that the GitHub-hosted `macos-15` attempt started successfully but remained stuck in the Natural Language integration step until the job timeout
+- if asset-backed automation becomes important later, prefer a self-hosted macOS runner with known asset state over retrying the same hosted setup unchanged
 
 ## Package Structure Target
 
@@ -435,7 +435,7 @@ The first concrete implementation pass should happen in this order:
 9. Add a heading-aware markdown chunker as the first major retrieval-quality improvement. Completed.
 10. Strengthen the real Natural Language integration assertions so asset-enabled runs prove useful similarity behavior, not just vector-shape correctness. Completed.
 11. Tighten retrieval defaults around metadata filtering and context assembly without widening the package into chat or generation concerns. Completed with explicit exclusion filters, ordered typed comparisons, grouped annotated output, smarter duplicate suppression, and refined budget handling.
-12. Keep default CI focused on `swift build` and `swift test`, and run Apple-asset integration coverage in a separate GitHub-hosted `macos-15` lane.
+12. Keep default CI focused on `swift build` and `swift test`, and keep Apple-asset integration coverage as explicit local-only verification until a better runner strategy exists.
 
 That sequence matters because it gets a fully testable retrieval loop working before the repo takes on Apple asset-management complexity.
 

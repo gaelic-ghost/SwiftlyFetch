@@ -132,7 +132,7 @@ Opt-in Natural Language integration coverage is available when you explicitly en
 RUN_NL_INTEGRATION_TESTS=1 swift test --filter NaturalLanguageEmbedderIntegrationTests
 ```
 
-GitHub Actions also runs that asset-backed Natural Language lane on `macos-15`. The default `swift test` path stays asset-independent, while the dedicated integration lane requests Apple assets at runtime when the hosted runner starts without them.
+That Natural Language verification is local-only for now. A GitHub-hosted `macos-15` lane was able to start the asset-backed test path, but the hosted run sat in the Natural Language integration step until the job timeout, so the default GitHub Actions workflow stays asset-independent.
 
 ## Repo Structure
 

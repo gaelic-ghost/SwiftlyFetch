@@ -17,11 +17,3 @@ jobs:
         run: swift test
       - name: Run repo-maintenance validation
         run: bash scripts/repo-maintenance/validate-all.sh
-  natural-language-assets:
-    needs: validate
-    runs-on: macos-15
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run Natural Language integration coverage with runtime asset requests
-        run: RUN_NL_INTEGRATION_TESTS=1 swift test --filter NaturalLanguageEmbedderIntegrationTests

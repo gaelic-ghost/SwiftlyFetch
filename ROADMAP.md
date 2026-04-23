@@ -97,7 +97,7 @@ Planned
 
 - [ ] Finish the remaining markdown-policy refinement work now that the package has a parser-backed chunking implementation.
 - [x] Record the sibling-family architecture clearly: `RAGKit` for semantic retrieval, `FetchKit` for traditional document and full-text search over SearchKit and Core Data, and `SwiftlyFetch` as the umbrella product story.
-- [x] Add a separate GitHub-hosted macOS CI lane for Apple-asset integration coverage while keeping the default required package-validation path asset-independent.
+- [x] Record that Apple-asset integration coverage remains local-only for now because the GitHub-hosted macOS attempt timed out in the Natural Language verification step.
 
 ### Tickets
 
@@ -110,7 +110,7 @@ Planned
 - [x] Decide the default link and reference policy so visible anchor text stays primary and raw destinations remain secondary unless a concrete retrieval need proves otherwise.
 - [x] Add opt-in, chunk-scoped link-destination metadata without widening default chunk text.
 - [x] Record the package-family direction in maintainer docs and public docs so future `FetchCore` and `FetchKit` work does not leak conventional search responsibilities into `RAGKit`.
-- [x] Add a GitHub-hosted `RUN_NL_INTEGRATION_TESTS=1` verification lane while keeping required default package validation on the non-asset path.
+- [x] Record that `RUN_NL_INTEGRATION_TESTS=1` remains explicit local-only verification because the GitHub-hosted `macos-15` run timed out in that step.
 
 ### Exit Criteria
 
@@ -122,7 +122,7 @@ Planned
 ## Backlog Candidates
 
 - [ ] If parser-backed markdown chunking still leaves retrieval-quality gaps, add retrieval-specific chunking heuristics on top of the chosen markdown parser instead of rebuilding markdown parsing rules locally.
-- [ ] If the GitHub-hosted asset lane proves too slow or flaky over time, evaluate a self-hosted macOS runner with prewarmed assets before widening the default validation gate.
+- [ ] If asset-backed automation becomes important again, evaluate a self-hosted macOS runner with prewarmed assets before retrying a hosted GitHub Actions lane.
 
 ## History
 
@@ -140,4 +140,4 @@ Planned
 - Settled the default link/reference policy so anchor text stays primary, raw destinations stay secondary, and reference definitions do not become standalone retrieval chunks.
 - Added opt-in chunk-scoped link-destination metadata while keeping raw destinations out of default chunk text.
 - Documented the `RAGKit` / `FetchKit` / `SwiftlyFetch` family split as the intended longer-term package direction.
-- Added a separate GitHub-hosted `macos-15` integration lane for Natural Language asset-backed coverage while keeping the default validation path asset-independent.
+- Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.
