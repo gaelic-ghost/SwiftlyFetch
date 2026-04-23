@@ -59,6 +59,12 @@ Its job should be to define things like:
 - snippet and ranking support types
 - indexing and storage protocols where they need to be public
 
+Current status:
+
+- `FetchCore` now exists as the first portable vocabulary target in the package
+- the initial code surface covers document identifiers, durable document records, indexable document views, search queries, search results, snippets, match ranges, store/index protocols, and an explicit indexing changeset boundary
+- backend work is still intentionally deferred until the Core Data model and Search Kit sync boundary are designed explicitly
+
 `FetchKit` should be the opinionated implementation layer.
 
 Its near-term job should be to provide:

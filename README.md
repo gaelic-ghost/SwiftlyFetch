@@ -22,11 +22,12 @@ An Apple-first Swift Package family for local document search and semantic retri
 
 SwiftlyFetch is the umbrella product direction for a small family of Apple-first local search packages. The product goal is simple: hand the system a local corpus and get back a real search engine, with conventional search and semantic retrieval both living under one coherent Swift-native story.
 
-Today, the shipped public package surface is split into `RAGCore` for the typed retrieval models and protocols, and `RAGKit` for the default chunking, embedding, indexing, and `KnowledgeBase` implementations that power semantic retrieval.
+Today, the package exposes `RAGCore` and `RAGKit` for shipped semantic retrieval work, plus an early `FetchCore` foundation target for the portable conventional-search vocabulary, durable document-record model, and indexing-changeset boundary that will eventually support `FetchKit`.
 
 The intended family split is:
 
 - `RAGKit` for semantic retrieval, knowledge-base assembly, and the retrieval-quality chunking, embedding, and indexing work that supports that job
+- `FetchCore` for the portable document-search vocabulary that will stay backend-agnostic as `FetchKit` grows
 - `FetchKit` for traditional search, with Core Data as the durable document store and SearchKit as the first planned macOS full-text indexing backend
 - `SwiftlyFetch` as the umbrella story tying those sibling package surfaces together over time
 
@@ -67,14 +68,16 @@ let context = try await kb.makeContext(for: "bright fruit")
 
 ## Usage
 
-The current public surface centers on two library products:
+The current public surface centers on three library products:
 
 ```swift
+import FetchCore
 import RAGCore
 import RAGKit
 
 let localKB = try await KnowledgeBase.hashingDefault()
 let appleKB = try await KnowledgeBase.naturalLanguageDefault(languageHint: "en")
+let fetchQuery = FetchSearchQuery("apple guide", kind: .allTerms)
 ```
 
 If a caller needs raw markdown link destinations for downstream indexing or fetch-oriented work, opt in at the chunker boundary instead of widening default chunk text:
@@ -120,7 +123,7 @@ Supported today:
 
 ### Workflow
 
-Use `Package.swift` as the source of truth for package structure, targets, and dependencies. The repo-maintenance toolkit lives under `scripts/repo-maintenance/`, and ordinary package work should stay on the default SwiftPM path unless Xcode-managed behavior is explicitly needed. The current code surface lives primarily under `Sources/RAGCore/` and `Sources/RAGKit/`.
+Use `Package.swift` as the source of truth for package structure, targets, and dependencies. The repo-maintenance toolkit lives under `scripts/repo-maintenance/`, and ordinary package work should stay on the default SwiftPM path unless Xcode-managed behavior is explicitly needed. The current code surface lives primarily under `Sources/RAGCore/`, `Sources/FetchCore/`, and `Sources/RAGKit/`.
 
 ### Validation
 
@@ -147,9 +150,11 @@ That Natural Language verification is local-only for now. A GitHub-hosted `macos
 ├── Package.swift
 ├── Sources/
 │   ├── RAGCore/
+│   ├── FetchCore/
 │   └── RAGKit/
 ├── Tests/
 │   ├── RAGCoreTests/
+│   ├── FetchCoreTests/
 │   ├── RAGKitTests/
 │   └── RAGKitIntegrationTests/
 ├── docs/

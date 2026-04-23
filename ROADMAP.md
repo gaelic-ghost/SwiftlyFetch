@@ -137,7 +137,9 @@ Planned
 ### Tickets
 
 - [ ] Add maintainer-facing `FetchKit` architecture guidance that explains the Core Data plus SearchKit model and its relationship to `RAGKit`.
-- [ ] Define the first `FetchCore` model and protocol candidates for document records, queries, search results, snippets, and index synchronization.
+- [x] Define the first `FetchCore` model and protocol candidates for document records, queries, search results, snippets, and index synchronization.
+- [x] Add the first explicit `FetchCore` indexing changeset boundary so later `FetchKit` work can sync Core Data updates into a full-text index without ad hoc write paths.
+- [x] Define the first durable `FetchDocumentRecord` shape so Core Data-backed corpus storage can stay distinct from derived full-text indexing views.
 - [ ] Decide the first Core Data document model shape and the sync boundary between stored records and the SearchKit index.
 - [ ] Decide the first public-facing `SwiftlyFetch` product wording for the family once `FetchKit` work begins landing in code.
 - [ ] Decide what iOS-first-class support means at the family level while the first concrete full-text backend remains macOS-first.
@@ -174,4 +176,7 @@ Planned
 - Tightened markdown fallback so policy-rejected markdown does not re-enter retrieval through the plain paragraph chunker.
 - Documented the `RAGKit` / `FetchKit` / `SwiftlyFetch` family split as the intended longer-term package direction.
 - Added a dedicated `FetchKit` product-plan pass and opened the docs-first foundation milestone for the conventional-search side of the family.
+- Added the first `FetchCore` target with portable document-search models, queries, results, snippets, and store/index protocols.
+- Added an explicit `FetchCore` indexing changeset model so future `FetchKit` backends can apply corpus updates through one sync boundary.
+- Added the first durable `FetchDocumentRecord` model so stored corpus state and derived indexable documents are separate in `FetchCore`.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.
