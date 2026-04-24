@@ -63,6 +63,8 @@ Current status:
 
 - `FetchCore` now exists as the first portable vocabulary target in the package
 - the initial code surface covers document identifiers, durable document records, indexable document views, search queries, search results, snippets, match ranges, store/index protocols, and an explicit indexing changeset boundary
+- the durable record shape now promotes typed lifecycle and source fields such as `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while keeping the freeform metadata bag string-based for now
+- the store-to-index boundary now uses a richer index-facing payload instead of dropping typed record fields through the sync changeset
 - backend work is still intentionally deferred until the Core Data model and Search Kit sync boundary are designed explicitly
 
 `FetchKit` should be the opinionated implementation layer.
@@ -126,6 +128,90 @@ That should include:
 - decide the first Core Data document model shape
 - decide the sync boundary between Core Data records and the Search Kit index
 - only then add the first macOS Search Kit implementation work
+
+## First Core Data Entity Shape
+
+The first Core Data model should stay deliberately small.
+
+Start with one primary entity:
+
+- `FetchStoredDocument`
+
+Its durable attributes should map closely to `FetchDocumentRecord`:
+
+- `id: String`
+- `title: String?`
+- `body: String`
+- `contentTypeRaw: String`
+- `kindRaw: String?`
+- `language: String?`
+- `sourceURI: String?`
+- `createdAt: Date?`
+- `updatedAt: Date?`
+- `lastIndexedAt: Date?`
+
+For the freeform metadata bag, the first model should avoid a transformable blob unless a concrete need proves it is worth the opacity. The cleaner first pass is a second entity:
+
+- `FetchStoredDocumentMetadataEntry`
+
+with:
+
+- `key: String`
+- `value: String`
+- relationship back to `FetchStoredDocument`
+
+That keeps the durable schema explicit, queryable, and migration-friendly.
+
+This follows Apple’s Core Data guidance that the real object graph should be modeled through explicit entities, attributes, and relationships in the model rather than hidden in opaque storage by default.
+
+References:
+
+- [Core Data model](https://developer.apple.com/documentation/coredata/core-data-model)
+- [Modeling data](https://developer.apple.com/documentation/coredata/modeling-data)
+- [Configuring Entities](https://developer.apple.com/documentation/coredata/configuring-entities)
+
+## First Sync Semantics
+
+The first Search Kit sync flow should be one-way and derived:
+
+1. `FetchDocumentStore` persists `FetchDocumentRecord`-shaped data in Core Data.
+2. Store-side change observation determines which stored records need indexing work.
+3. Those record changes are converted into `FetchIndexingChangeset`.
+4. The changeset carries `FetchIndexDocument` values into the Search Kit index.
+5. When indexing succeeds, `lastIndexedAt` is written back to the stored document record.
+
+In plain language: Core Data is the source of truth, Search Kit is a derived full-text cache, and `lastIndexedAt` is the durable marker that tells us whether the cache is caught up.
+
+The first pass should not try to make Search Kit authoritative for anything. Rebuildability matters more than clever bidirectional sync.
+
+## First Indexing Rules
+
+The first Search Kit backend should index:
+
+- `title`
+- `body`
+
+It may also use these typed fields as indexing or ranking hints:
+
+- `kind`
+- `language`
+- `sourceURI`
+- `createdAt`
+- `updatedAt`
+
+The metadata-entry relationship should stay available for later indexing decisions, but the first backend does not need to dump every metadata key into full-text search immediately.
+
+## First Non-Goals For The Entity Model
+
+Do not add these in the first Core Data shape:
+
+- attachment or blob storage
+- separate version-history entities
+- tag-normalization entities unless repeated real queries justify them
+- denormalized semantic-chunk storage that belongs in `RAGKit`
+- bidirectional index bookkeeping beyond `lastIndexedAt`
+
+The first model should prove the corpus store and Search Kit sync path, not solve every future content-management feature.
 
 ## Non-Goals For The First FetchKit Pass
 

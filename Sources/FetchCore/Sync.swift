@@ -1,5 +1,5 @@
 public enum FetchIndexChange: Hashable, Codable, Sendable {
-    case upsert(FetchDocument)
+    case upsert(FetchIndexDocument)
     case remove(FetchDocumentID)
 }
 
@@ -14,7 +14,7 @@ public struct FetchIndexingChangeset: Hashable, Codable, Sendable {
         changes.isEmpty
     }
 
-    public var upsertedDocuments: [FetchDocument] {
+    public var upsertedDocuments: [FetchIndexDocument] {
         changes.compactMap { change in
             guard case .upsert(let document) = change else {
                 return nil

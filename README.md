@@ -22,7 +22,7 @@ An Apple-first Swift Package family for local document search and semantic retri
 
 SwiftlyFetch is the umbrella product direction for a small family of Apple-first local search packages. The product goal is simple: hand the system a local corpus and get back a real search engine, with conventional search and semantic retrieval both living under one coherent Swift-native story.
 
-Today, the package exposes `RAGCore` and `RAGKit` for shipped semantic retrieval work, plus an early `FetchCore` foundation target for the portable conventional-search vocabulary, durable document-record model, and indexing-changeset boundary that will eventually support `FetchKit`.
+Today, the package exposes `RAGCore` and `RAGKit` for shipped semantic retrieval work, plus an early `FetchCore` foundation target for the portable conventional-search vocabulary, durable document-record model, and indexing-changeset boundary that will eventually support `FetchKit`. That record model now carries first-class typed lifecycle and source fields like `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while leaving the freeform metadata bag string-based. `FetchCore` now also distinguishes between the durable stored record, the lean search-facing document view, and the richer index-facing payload used by the sync boundary.
 
 The intended family split is:
 

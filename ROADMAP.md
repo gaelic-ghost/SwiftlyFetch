@@ -140,7 +140,9 @@ Planned
 - [x] Define the first `FetchCore` model and protocol candidates for document records, queries, search results, snippets, and index synchronization.
 - [x] Add the first explicit `FetchCore` indexing changeset boundary so later `FetchKit` work can sync Core Data updates into a full-text index without ad hoc write paths.
 - [x] Define the first durable `FetchDocumentRecord` shape so Core Data-backed corpus storage can stay distinct from derived full-text indexing views.
-- [ ] Decide the first Core Data document model shape and the sync boundary between stored records and the SearchKit index.
+- [x] Promote the first typed lifecycle and source fields on `FetchDocumentRecord` while keeping freeform metadata string-based.
+- [x] Split the derived search document view from the richer index-facing payload so typed record fields can cross the store-to-index boundary cleanly.
+- [x] Decide the first Core Data document model shape and the sync boundary between stored records and the SearchKit index.
 - [ ] Decide the first public-facing `SwiftlyFetch` product wording for the family once `FetchKit` work begins landing in code.
 - [ ] Decide what iOS-first-class support means at the family level while the first concrete full-text backend remains macOS-first.
 
@@ -179,4 +181,7 @@ Planned
 - Added the first `FetchCore` target with portable document-search models, queries, results, snippets, and store/index protocols.
 - Added an explicit `FetchCore` indexing changeset model so future `FetchKit` backends can apply corpus updates through one sync boundary.
 - Added the first durable `FetchDocumentRecord` model so stored corpus state and derived indexable documents are separate in `FetchCore`.
+- Promoted `kind`, `language`, `createdAt`, and `updatedAt` onto `FetchDocumentRecord` as first-class typed fields.
+- Split `FetchDocument`, `FetchIndexDocument`, and `FetchDocumentRecord` into clearer search, index, and durable-record roles.
+- Defined the first `FetchKit` Core Data entity shape and one-way Core Data to Search Kit sync model in maintainer docs.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.

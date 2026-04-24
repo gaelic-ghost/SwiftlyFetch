@@ -61,15 +61,21 @@ struct FetchCoreSearchModelTests {
         #expect(result.snippet?.matchRanges == [FetchMatchRange(lowerBound: 0, upperBound: 6)])
     }
 
-    @Test("Fetch document records keep durable metadata separate from the indexable document view")
-    func fetchDocumentRecordSeparatesDurableStateFromIndexableView() {
+    @Test("Fetch document records keep durable metadata separate from search and index views")
+    func fetchDocumentRecordSeparatesDurableStateFromDerivedViews() {
+        let createdAt = Date(timeIntervalSince1970: 1_699_000_000)
+        let updatedAt = Date(timeIntervalSince1970: 1_699_500_000)
         let indexedAt = Date(timeIntervalSince1970: 1_700_000_000)
         let record = FetchDocumentRecord(
             id: "doc-apple",
             title: "Apple Guide",
             body: "Apples are bright and crisp.",
             contentType: .markdown,
+            kind: .guide,
+            language: "en",
             sourceURI: "file:///docs/apple.md",
+            createdAt: createdAt,
+            updatedAt: updatedAt,
             metadata: [
                 "category": "fruit",
                 "workspace": "docs",
@@ -78,15 +84,28 @@ struct FetchCoreSearchModelTests {
         )
 
         #expect(record.id == "doc-apple")
+        #expect(record.kind == .guide)
+        #expect(record.language == "en")
         #expect(record.sourceURI == "file:///docs/apple.md")
+        #expect(record.createdAt == createdAt)
+        #expect(record.updatedAt == updatedAt)
         #expect(record.metadata["category"] == "fruit")
         #expect(record.lastIndexedAt == indexedAt)
 
-        let document = record.indexableDocument
-        #expect(document.id == "doc-apple")
-        #expect(document.title == "Apple Guide")
-        #expect(document.body == "Apples are bright and crisp.")
-        #expect(document.contentType == FetchDocumentContentType.markdown)
+        let searchDocument = record.searchDocument
+        #expect(searchDocument.id == "doc-apple")
+        #expect(searchDocument.title == "Apple Guide")
+        #expect(searchDocument.body == "Apples are bright and crisp.")
+        #expect(searchDocument.contentType == FetchDocumentContentType.markdown)
+
+        let indexDocument = record.indexDocument
+        #expect(indexDocument.id == "doc-apple")
+        #expect(indexDocument.kind == .guide)
+        #expect(indexDocument.language == "en")
+        #expect(indexDocument.sourceURI == "file:///docs/apple.md")
+        #expect(indexDocument.createdAt == createdAt)
+        #expect(indexDocument.updatedAt == updatedAt)
+        #expect(indexDocument.metadata["workspace"] == "docs")
     }
 
     @Test("Fetch documents can be constructed from document records")
@@ -96,7 +115,11 @@ struct FetchCoreSearchModelTests {
             title: "Orange Guide",
             body: "Oranges are juicy and sweet.",
             contentType: .plainText,
+            kind: .reference,
+            language: "en",
             sourceURI: "file:///docs/orange.txt",
+            createdAt: Date(timeIntervalSince1970: 1_700_100_000),
+            updatedAt: Date(timeIntervalSince1970: 1_700_200_000),
             metadata: ["category": "citrus"]
         )
 
@@ -110,15 +133,19 @@ struct FetchCoreSearchModelTests {
 
     @Test("Fetch indexing changesets separate upserts from removals")
     func fetchIndexingChangesetSeparatesUpsertsAndRemovals() {
-        let apple = FetchDocument(
+        let apple = FetchIndexDocument(
             id: "doc-apple",
             title: "Apple Guide",
-            body: "Apples are bright and crisp."
+            body: "Apples are bright and crisp.",
+            kind: .guide,
+            language: "en"
         )
-        let orange = FetchDocument(
+        let orange = FetchIndexDocument(
             id: "doc-orange",
             title: "Orange Guide",
-            body: "Oranges are juicy and sweet."
+            body: "Oranges are juicy and sweet.",
+            kind: .reference,
+            language: "en"
         )
         let changeset = FetchIndexingChangeset([
             .upsert(apple),
@@ -129,6 +156,27 @@ struct FetchCoreSearchModelTests {
         #expect(!changeset.isEmpty)
         #expect(changeset.upsertedDocuments == [apple, orange])
         #expect(changeset.removedDocumentIDs == ["doc-old"])
+    }
+
+    @Test("Fetch index documents can still be reduced to search documents")
+    func fetchIndexDocumentCanProduceSearchDocument() {
+        let document = FetchIndexDocument(
+            id: "doc-apple",
+            title: "Apple Guide",
+            body: "Apples are bright and crisp.",
+            contentType: .markdown,
+            kind: .guide,
+            language: "en",
+            sourceURI: "file:///docs/apple.md",
+            metadata: ["category": "fruit"]
+        )
+
+        let searchDocument = document.searchDocument
+
+        #expect(searchDocument.id == "doc-apple")
+        #expect(searchDocument.title == "Apple Guide")
+        #expect(searchDocument.body == "Apples are bright and crisp.")
+        #expect(searchDocument.contentType == .markdown)
     }
 
     @Test("Fetch indexing changesets report empty state")
