@@ -24,6 +24,14 @@ That means:
 
 In plain language: `FetchKit` is the "search engine over my local corpus" side of `SwiftlyFetch`, while `RAGKit` is the "semantic retrieval over my local corpus" side.
 
+The public-facing wording should stay simple:
+
+- `SwiftlyFetch` means "give the family a corpus and get back real local search"
+- `FetchKit` means conventional full-document search over that corpus
+- `RAGKit` means semantic retrieval over that corpus
+
+That wording matters because the family should read like one product with two complementary search modes, not like unrelated packages that happen to share a repository.
+
 ## Architectural Model
 
 The intended storage and indexing model is:
@@ -65,6 +73,8 @@ Current status:
 - the initial code surface covers document identifiers, durable document records, indexable document views, search queries, search results, snippets, match ranges, store/index protocols, and an explicit indexing changeset boundary
 - the durable record shape now promotes typed lifecycle and source fields such as `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while keeping the freeform metadata bag string-based for now
 - the store-to-index boundary now uses a richer index-facing payload instead of dropping typed record fields through the sync changeset
+- `FetchKitLibrary` now offers a default in-memory construction path plus explicit dependency injection for custom store and index implementations
+- the public facade now includes singular and batch document verbs, a tighter `document(withID:)` lookup surface, and typed batch results for write operations
 - backend work is still intentionally deferred until the Core Data model and Search Kit sync boundary are designed explicitly
 
 `FetchKit` should be the opinionated implementation layer.
@@ -84,13 +94,20 @@ Its near-term job should be to provide:
 
 - macOS should be first-class immediately
 - iOS should remain a first-class product target at the umbrella level
-- iOS may need a different indexing backend later because the first planned full-text path is Search Kit on macOS
+- iOS will likely need a different indexing backend because Apple documents Search Kit as the Mac-side indexing and search framework, while Core Spotlight is the more natural Apple-side search/indexing surface on iOS
 
 In practical terms, that means:
 
 - do not bake Search Kit types or assumptions into `FetchCore`
 - do let `FetchKit` start macOS-first if that is the cleanest real backend
 - keep room for a different iOS indexing backend later without redefining the `FetchCore` vocabulary
+
+So "iOS is first-class" should mean:
+
+- the family product story includes iOS from the start
+- `FetchCore` stays portable enough to support iOS cleanly
+- public docs should avoid implying that the first macOS Search Kit backend already solves iOS
+- when iOS backend work starts, it should land as a real backend decision rather than as compatibility wording
 
 ## Relationship To RAGKit
 

@@ -143,8 +143,11 @@ Planned
 - [x] Promote the first typed lifecycle and source fields on `FetchDocumentRecord` while keeping freeform metadata string-based.
 - [x] Split the derived search document view from the richer index-facing payload so typed record fields can cross the store-to-index boundary cleanly.
 - [x] Decide the first Core Data document model shape and the sync boundary between stored records and the SearchKit index.
-- [ ] Decide the first public-facing `SwiftlyFetch` product wording for the family once `FetchKit` work begins landing in code.
-- [ ] Decide what iOS-first-class support means at the family level while the first concrete full-text backend remains macOS-first.
+- [x] Draft the first `FetchKitLibrary` facade with typed add, update, remove, document, and search entry points over the `FetchCore` store/index protocols.
+- [x] Add a first `FetchKitLibrary` configuration/default-construction story so top-level callers do not need to live on raw store/index injection forever.
+- [x] Review the `FetchKitLibrary` method naming and result shapes for a tighter Cocoa-style API, including the document lookup surface and whether write operations should return typed summaries.
+- [x] Decide the first public-facing `SwiftlyFetch` product wording for the family once `FetchKit` work begins landing in code.
+- [x] Decide what iOS-first-class support means at the family level while the first concrete full-text backend remains macOS-first.
 
 ### Exit Criteria
 
@@ -184,4 +187,7 @@ Planned
 - Promoted `kind`, `language`, `createdAt`, and `updatedAt` onto `FetchDocumentRecord` as first-class typed fields.
 - Split `FetchDocument`, `FetchIndexDocument`, and `FetchDocumentRecord` into clearer search, index, and durable-record roles.
 - Defined the first `FetchKit` Core Data entity shape and one-way Core Data to Search Kit sync model in maintainer docs.
+- Added the first `FetchKitLibrary` facade so conventional search now has a small typed public API surface in code.
+- Added the first `FetchKitLibrary` configuration and API-polish pass with a default in-memory backend, singular conveniences, and typed batch results.
+- Settled the first public `SwiftlyFetch` family wording and clarified that iOS stays first-class through portable `FetchCore` plus a later backend, while the first full-text backend remains macOS-first.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.

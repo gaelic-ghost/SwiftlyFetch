@@ -19,6 +19,10 @@ let package = Package(
             targets: ["FetchCore"]
         ),
         .library(
+            name: "FetchKit",
+            targets: ["FetchKit"]
+        ),
+        .library(
             name: "RAGKit",
             targets: ["RAGKit"]
         ),
@@ -34,6 +38,10 @@ let package = Package(
             name: "FetchCore"
         ),
         .target(
+            name: "FetchKit",
+            dependencies: ["FetchCore"]
+        ),
+        .target(
             name: "RAGKit",
             dependencies: [
                 "RAGCore",
@@ -47,6 +55,10 @@ let package = Package(
         .testTarget(
             name: "FetchCoreTests",
             dependencies: ["FetchCore"]
+        ),
+        .testTarget(
+            name: "FetchKitTests",
+            dependencies: ["FetchKit", "FetchCore"]
         ),
         .testTarget(
             name: "RAGKitTests",
