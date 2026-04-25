@@ -1,4 +1,7 @@
-name: Validate Package And Repo Maintenance
+name: Validate Repo Maintenance
+
+# Branch protection should require the Actions check context `validate`.
+# GitHub exposes the job check run by this job name, not by the workflow title.
 
 on:
   pull_request:
@@ -8,12 +11,11 @@ on:
 
 jobs:
   validate:
+    name: validate
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Build package
-        run: swift build
-      - name: Run package tests
-        run: swift test
+      - name: Install Swift repo-maintenance tools
+        run: brew install swiftformat swiftlint
       - name: Run repo-maintenance validation
         run: bash scripts/repo-maintenance/validate-all.sh

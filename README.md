@@ -16,7 +16,7 @@ An Apple-first Swift Package family for local document search and semantic retri
 
 ### Status
 
-`v0.1.0` is the first retrieval-first package release. The current shipped surface covers local document ingestion for plain text and markdown, chunking, embeddings, in-memory indexing, metadata filtering, retrieval, and deterministic context assembly.
+`v0.1.0` is the first retrieval-first package release and is stable enough to try locally.
 
 ### What This Project Is
 
