@@ -2,12 +2,29 @@ import FetchCore
 
 public actor FetchKitLibrary {
     public struct IndexSyncError: Error, Sendable {
-        public let changeset: FetchIndexingChangeset
+        public let pendingIndexSync: FetchPendingIndexSync
         public let underlyingErrorDescription: String
 
-        public init(changeset: FetchIndexingChangeset, underlyingError: Error) {
-            self.changeset = changeset
+        public init(pendingIndexSync: FetchPendingIndexSync, underlyingError: Error) {
+            self.pendingIndexSync = pendingIndexSync
             self.underlyingErrorDescription = String(describing: underlyingError)
+        }
+    }
+
+    public struct IndexSyncRetryResult: Hashable, Sendable {
+        public let completedSyncIDs: [FetchPendingIndexSyncID]
+        public let affectedDocumentIDs: [FetchDocumentID]
+
+        public init(
+            completedSyncIDs: [FetchPendingIndexSyncID],
+            affectedDocumentIDs: [FetchDocumentID]
+        ) {
+            self.completedSyncIDs = completedSyncIDs
+            self.affectedDocumentIDs = affectedDocumentIDs
+        }
+
+        public var count: Int {
+            completedSyncIDs.count
         }
     }
 
@@ -125,6 +142,41 @@ public actor FetchKitLibrary {
         )
     }
 
+    public func pendingIndexSyncs() async throws -> [FetchPendingIndexSync] {
+        try await documentStore.pendingIndexSyncs()
+    }
+
+    @discardableResult
+    public func retryPendingIndexSyncs(limit: Int? = nil) async throws -> IndexSyncRetryResult {
+        let pendingSyncs = try await documentStore.pendingIndexSyncs()
+        let slice = limit.map { Array(pendingSyncs.prefix(max(0, $0))) } ?? pendingSyncs
+
+        var completedSyncIDs: [FetchPendingIndexSyncID] = []
+        var affectedDocumentIDs: [FetchDocumentID] = []
+
+        for pendingSync in slice {
+            do {
+                try await index.apply(pendingSync.changeset)
+                try await documentStore.removePendingIndexSyncs(withIDs: [pendingSync.id])
+                completedSyncIDs.append(pendingSync.id)
+                affectedDocumentIDs.append(contentsOf: pendingSync.affectedDocumentIDs)
+            } catch {
+                throw IndexSyncError(
+                    pendingIndexSync: pendingSync,
+                    underlyingError: error
+                )
+            }
+        }
+
+        var seen = Set<FetchDocumentID>()
+        let uniqueAffectedDocumentIDs = affectedDocumentIDs.filter { seen.insert($0).inserted }
+
+        return IndexSyncRetryResult(
+            completedSyncIDs: completedSyncIDs,
+            affectedDocumentIDs: uniqueAffectedDocumentIDs
+        )
+    }
+
     private func upsertDocuments(_ records: [FetchDocumentRecord]) async throws -> BatchResult {
         guard !records.isEmpty else {
             return BatchResult(documentIDs: [])
@@ -136,15 +188,16 @@ public actor FetchKitLibrary {
     }
 
     private func applyIndexingChanges(for mutation: FetchStoreMutationResult) async throws {
-        guard !mutation.isEmpty else {
+        guard let pendingIndexSync = mutation.pendingIndexSync else {
             return
         }
 
         do {
-            try await index.apply(mutation.indexingChangeset)
+            try await index.apply(pendingIndexSync.changeset)
+            try await documentStore.removePendingIndexSyncs(withIDs: [pendingIndexSync.id])
         } catch {
             throw IndexSyncError(
-                changeset: mutation.indexingChangeset,
+                pendingIndexSync: pendingIndexSync,
                 underlyingError: error
             )
         }

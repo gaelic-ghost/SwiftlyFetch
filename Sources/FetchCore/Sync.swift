@@ -1,24 +1,66 @@
+import Foundation
+
 public enum FetchIndexChange: Hashable, Codable, Sendable {
     case upsert(FetchIndexDocument)
     case remove(FetchDocumentID)
 }
 
-public struct FetchStoreMutationResult: Hashable, Codable, Sendable {
-    public let indexingChangeset: FetchIndexingChangeset
+public struct FetchPendingIndexSyncID: RawRepresentable, Hashable, Codable, Sendable, ExpressibleByStringLiteral, CustomStringConvertible {
+    public let rawValue: String
 
-    public init(indexingChangeset: FetchIndexingChangeset) {
-        self.indexingChangeset = indexingChangeset
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: StringLiteralType) {
+        self.rawValue = value
+    }
+
+    public var description: String {
+        rawValue
+    }
+}
+
+public struct FetchPendingIndexSync: Hashable, Codable, Sendable {
+    public let id: FetchPendingIndexSyncID
+    public let changeset: FetchIndexingChangeset
+    public let createdAt: Date
+
+    public init(
+        id: FetchPendingIndexSyncID,
+        changeset: FetchIndexingChangeset,
+        createdAt: Date = .now
+    ) {
+        self.id = id
+        self.changeset = changeset
+        self.createdAt = createdAt
     }
 
     public var affectedDocumentIDs: [FetchDocumentID] {
-        let upsertedIDs = indexingChangeset.upsertedDocuments.map(\.id)
-        let removedIDs = indexingChangeset.removedDocumentIDs
+        let upsertedIDs = changeset.upsertedDocuments.map(\.id)
+        let removedIDs = changeset.removedDocumentIDs
         var seen = Set<FetchDocumentID>()
         return (upsertedIDs + removedIDs).filter { seen.insert($0).inserted }
     }
+}
+
+public struct FetchStoreMutationResult: Hashable, Codable, Sendable {
+    public let pendingIndexSync: FetchPendingIndexSync?
+
+    public init(pendingIndexSync: FetchPendingIndexSync?) {
+        self.pendingIndexSync = pendingIndexSync
+    }
+
+    public var affectedDocumentIDs: [FetchDocumentID] {
+        pendingIndexSync?.affectedDocumentIDs ?? []
+    }
 
     public var isEmpty: Bool {
-        indexingChangeset.isEmpty
+        pendingIndexSync?.changeset.isEmpty ?? true
     }
 }
 

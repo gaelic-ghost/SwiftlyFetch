@@ -196,11 +196,14 @@ struct FetchCoreSearchModelTests {
             body: "Apples are bright and crisp."
         )
         let result = FetchStoreMutationResult(
-            indexingChangeset: FetchIndexingChangeset([
-                .upsert(apple),
-                .remove("doc-apple"),
-                .remove("doc-orange"),
-            ])
+            pendingIndexSync: FetchPendingIndexSync(
+                id: "sync-1",
+                changeset: FetchIndexingChangeset([
+                    .upsert(apple),
+                    .remove("doc-apple"),
+                    .remove("doc-orange"),
+                ])
+            )
         )
 
         #expect(result.affectedDocumentIDs == ["doc-apple", "doc-orange"])

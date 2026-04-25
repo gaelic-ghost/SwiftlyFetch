@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import FetchCore
 @testable import FetchKit
@@ -132,13 +133,46 @@ struct FetchKitLibraryTests {
             _ = try await library.addDocument(record)
             Issue.record("Expected FetchKitLibrary to surface an index sync error.")
         } catch let error as FetchKitLibrary.IndexSyncError {
-            #expect(error.changeset.upsertedDocuments == [record.indexDocument])
+            #expect(error.pendingIndexSync.changeset.upsertedDocuments == [record.indexDocument])
         } catch {
             Issue.record("Expected FetchKitLibrary.IndexSyncError but received \(String(describing: error)).")
         }
 
         let fetchedRecord = try await library.document(withID: "doc-apple")
+        let pendingSyncs = try await library.pendingIndexSyncs()
+
         #expect(fetchedRecord == record)
+        #expect(pendingSyncs.count == 1)
+        #expect(pendingSyncs[0].changeset.upsertedDocuments == [record.indexDocument])
+    }
+
+    @Test("FetchKitLibrary retries pending index syncs and clears them after success")
+    func fetchKitLibraryRetriesPendingIndexSyncs() async throws {
+        let store = RecordingFetchDocumentStore()
+        let failingIndex = FailingFetchIndex()
+        let library = FetchKitLibrary(documentStore: store, index: failingIndex)
+        let record = FetchDocumentRecord(
+            id: "doc-apple",
+            title: "Apple Guide",
+            body: "Apples are bright and crisp."
+        )
+
+        do {
+            _ = try await library.addDocument(record)
+            Issue.record("Expected the first add attempt to leave a pending sync behind.")
+        } catch {}
+
+        let retryingIndex = RecordingFetchIndex()
+        let retryingLibrary = FetchKitLibrary(documentStore: store, index: retryingIndex)
+        let retryResult = try await retryingLibrary.retryPendingIndexSyncs()
+        let pendingSyncsAfterRetry = try await retryingLibrary.pendingIndexSyncs()
+        let appliedChangesets = await retryingIndex.appliedChangesets
+
+        #expect(retryResult.count == 1)
+        #expect(retryResult.affectedDocumentIDs == ["doc-apple"])
+        #expect(pendingSyncsAfterRetry.isEmpty)
+        #expect(appliedChangesets.count == 1)
+        #expect(appliedChangesets[0].upsertedDocuments == [record.indexDocument])
     }
 }
 
@@ -146,6 +180,8 @@ private actor RecordingFetchDocumentStore: FetchDocumentStore {
     private(set) var upsertedRecords: [FetchDocumentRecord] = []
     private(set) var removedDocumentIDs: [FetchDocumentID] = []
     private(set) var storedDocuments: [FetchDocumentID: FetchDocumentRecord] = [:]
+    private(set) var pendingSyncs: [FetchPendingIndexSyncID: FetchPendingIndexSync] = [:]
+    private(set) var pendingSyncOrder: [FetchPendingIndexSyncID] = []
 
     func upsert(_ records: [FetchDocumentRecord]) async throws -> FetchStoreMutationResult {
         upsertedRecords.append(contentsOf: records)
@@ -154,8 +190,10 @@ private actor RecordingFetchDocumentStore: FetchDocumentStore {
         }
 
         return FetchStoreMutationResult(
-            indexingChangeset: FetchIndexingChangeset(
-                records.map { .upsert($0.indexDocument) }
+            pendingIndexSync: makePendingSync(
+                changeset: FetchIndexingChangeset(
+                    records.map { .upsert($0.indexDocument) }
+                )
             )
         )
     }
@@ -171,8 +209,10 @@ private actor RecordingFetchDocumentStore: FetchDocumentStore {
         }
 
         return FetchStoreMutationResult(
-            indexingChangeset: FetchIndexingChangeset(
-                ids.map { .remove($0) }
+            pendingIndexSync: makePendingSync(
+                changeset: FetchIndexingChangeset(
+                    ids.map { .remove($0) }
+                )
             )
         )
     }
@@ -184,10 +224,33 @@ private actor RecordingFetchDocumentStore: FetchDocumentStore {
         removedDocumentIDs.removeAll()
 
         return FetchStoreMutationResult(
-            indexingChangeset: FetchIndexingChangeset(
-                removedIDs.map { .remove($0) }
+            pendingIndexSync: removedIDs.isEmpty ? nil : makePendingSync(
+                changeset: FetchIndexingChangeset(
+                    removedIDs.map { .remove($0) }
+                )
             )
         )
+    }
+
+    func pendingIndexSyncs() async throws -> [FetchPendingIndexSync] {
+        pendingSyncOrder.compactMap { pendingSyncs[$0] }
+    }
+
+    func removePendingIndexSyncs(withIDs ids: [FetchPendingIndexSyncID]) async throws {
+        for id in ids {
+            pendingSyncs[id] = nil
+        }
+        pendingSyncOrder.removeAll { ids.contains($0) }
+    }
+
+    private func makePendingSync(changeset: FetchIndexingChangeset) -> FetchPendingIndexSync {
+        let pendingSync = FetchPendingIndexSync(
+            id: FetchPendingIndexSyncID(UUID().uuidString),
+            changeset: changeset
+        )
+        pendingSyncs[pendingSync.id] = pendingSync
+        pendingSyncOrder.append(pendingSync.id)
+        return pendingSync
     }
 }
 

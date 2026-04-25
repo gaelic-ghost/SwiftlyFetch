@@ -28,10 +28,13 @@ struct CoreDataFetchDocumentStoreTests {
             lastIndexedAt: lastIndexedAt
         )
 
-        _ = try await store.upsert([record])
+        let mutation = try await store.upsert([record])
         let fetched = try await store.document(id: "doc-apple")
+        let pendingSyncs = try await store.pendingIndexSyncs()
 
         #expect(fetched == record)
+        #expect(mutation.pendingIndexSync?.changeset.upsertedDocuments == [record.indexDocument])
+        #expect(pendingSyncs.count == 1)
     }
 
     @Test("CoreDataFetchDocumentStore replaces metadata and field values on upsert")
@@ -81,9 +84,11 @@ struct CoreDataFetchDocumentStoreTests {
 
         let mutation = try await store.upsert([original, updated])
         let fetched = try await store.document(id: "doc-apple")
+        let pendingSyncs = try await store.pendingIndexSyncs()
 
         #expect(mutation.affectedDocumentIDs == ["doc-apple"])
         #expect(fetched == updated)
+        #expect(pendingSyncs.count == 1)
     }
 
     @Test("CoreDataFetchDocumentStore removes selected documents")
@@ -115,5 +120,31 @@ struct CoreDataFetchDocumentStoreTests {
 
         #expect(try await store.document(id: "doc-apple") == nil)
         #expect(try await store.document(id: "doc-orange") == nil)
+    }
+
+    @Test("CoreDataFetchDocumentStore persists pending index syncs until they are acknowledged")
+    func coreDataFetchDocumentStorePersistsPendingSyncQueue() async throws {
+        let store = try await CoreDataFetchDocumentStore()
+        let record = FetchDocumentRecord(
+            id: "doc-apple",
+            title: "Apple Guide",
+            body: "Apples are bright and crisp."
+        )
+
+        let mutation = try await store.upsert([record])
+        let pendingBeforeAck = try await store.pendingIndexSyncs()
+
+        #expect(pendingBeforeAck.count == 1)
+        #expect(pendingBeforeAck[0].changeset.upsertedDocuments == [record.indexDocument])
+
+        guard let pendingSync = mutation.pendingIndexSync else {
+            Issue.record("Expected the store mutation to create a pending index sync.")
+            return
+        }
+
+        try await store.removePendingIndexSyncs(withIDs: [pendingSync.id])
+
+        let pendingAfterAck = try await store.pendingIndexSyncs()
+        #expect(pendingAfterAck.isEmpty)
     }
 }

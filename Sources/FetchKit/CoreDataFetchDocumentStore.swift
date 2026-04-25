@@ -19,15 +19,15 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
     }
 
     public enum StoreError: Error, LocalizedError {
-        case missingEntity(String)
         case loadFailed(String)
+        case decodeFailed(String)
 
         public var errorDescription: String? {
             switch self {
-            case let .missingEntity(name):
-                "FetchKit could not build its Core Data model because the '\(name)' entity definition is missing."
             case let .loadFailed(message):
                 "FetchKit could not load the Core Data persistent store. \(message)"
+            case let .decodeFailed(message):
+                "FetchKit could not decode a persisted pending index sync operation. \(message)"
             }
         }
     }
@@ -42,8 +42,17 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
 
     public func upsert(_ records: [FetchDocumentRecord]) async throws -> FetchStoreMutationResult {
         guard !records.isEmpty else {
-            return FetchStoreMutationResult(indexingChangeset: FetchIndexingChangeset([]))
+            return FetchStoreMutationResult(pendingIndexSync: nil)
         }
+
+        let changeset = FetchIndexingChangeset(
+            records.map { .upsert($0.indexDocument) }
+        )
+
+        let pendingSync = FetchPendingIndexSync(
+            id: FetchPendingIndexSyncID(UUID().uuidString),
+            changeset: changeset
+        )
 
         try await performWrite { context in
             let existingDocuments = try Self.fetchStoredDocuments(
@@ -69,13 +78,11 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
                 existingByID[record.id.rawValue] = document
                 try Self.apply(record: record, to: document, in: context)
             }
+
+            try Self.insertPendingSync(pendingSync, in: context)
         }
 
-        return FetchStoreMutationResult(
-            indexingChangeset: FetchIndexingChangeset(
-                records.map { .upsert($0.indexDocument) }
-            )
-        )
+        return FetchStoreMutationResult(pendingIndexSync: pendingSync)
     }
 
     public func document(id: FetchDocumentID) async throws -> FetchDocumentRecord? {
@@ -94,8 +101,15 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
 
     public func removeDocuments(withIDs ids: [FetchDocumentID]) async throws -> FetchStoreMutationResult {
         guard !ids.isEmpty else {
-            return FetchStoreMutationResult(indexingChangeset: FetchIndexingChangeset([]))
+            return FetchStoreMutationResult(pendingIndexSync: nil)
         }
+
+        let pendingSync = FetchPendingIndexSync(
+            id: FetchPendingIndexSyncID(UUID().uuidString),
+            changeset: FetchIndexingChangeset(
+                ids.map { .remove($0) }
+            )
+        )
 
         try await performWrite { context in
             let documents = try Self.fetchStoredDocuments(
@@ -106,13 +120,11 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
             for document in documents {
                 context.delete(document)
             }
+
+            try Self.insertPendingSync(pendingSync, in: context)
         }
 
-        return FetchStoreMutationResult(
-            indexingChangeset: FetchIndexingChangeset(
-                ids.map { .remove($0) }
-            )
-        )
+        return FetchStoreMutationResult(pendingIndexSync: pendingSync)
     }
 
     public func removeAllDocuments() async throws -> FetchStoreMutationResult {
@@ -127,6 +139,13 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
             }
         }
 
+        let pendingSync = removedIDs.isEmpty ? nil : FetchPendingIndexSync(
+            id: FetchPendingIndexSyncID(UUID().uuidString),
+            changeset: FetchIndexingChangeset(
+                removedIDs.map { FetchIndexChange.remove($0) }
+            )
+        )
+
         try await performWrite { context in
             let request = NSFetchRequest<NSManagedObject>(entityName: EntityName.document.rawValue)
             let documents = try context.fetch(request)
@@ -134,13 +153,43 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
             for document in documents {
                 context.delete(document)
             }
+
+            if let pendingSync {
+                try Self.insertPendingSync(pendingSync, in: context)
+            }
         }
 
-        return FetchStoreMutationResult(
-            indexingChangeset: FetchIndexingChangeset(
-                removedIDs.map { FetchIndexChange.remove($0) }
+        return FetchStoreMutationResult(pendingIndexSync: pendingSync)
+    }
+
+    public func pendingIndexSyncs() async throws -> [FetchPendingIndexSync] {
+        try await performRead { context in
+            let request = NSFetchRequest<NSManagedObject>(entityName: EntityName.pendingSync.rawValue)
+            request.sortDescriptors = [
+                NSSortDescriptor(key: PendingSyncProperty.createdAt.rawValue, ascending: true),
+            ]
+
+            return try context.fetch(request).map(Self.makePendingSync)
+        }
+    }
+
+    public func removePendingIndexSyncs(withIDs ids: [FetchPendingIndexSyncID]) async throws {
+        guard !ids.isEmpty else {
+            return
+        }
+
+        try await performWrite { context in
+            let request = NSFetchRequest<NSManagedObject>(entityName: EntityName.pendingSync.rawValue)
+            request.predicate = NSPredicate(
+                format: "%K IN %@",
+                PendingSyncProperty.id.rawValue,
+                ids.map(\.rawValue)
             )
-        )
+
+            for pendingSync in try context.fetch(request) {
+                context.delete(pendingSync)
+            }
+        }
     }
 
     private func performRead<T: Sendable>(
@@ -252,6 +301,42 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
         )
     }
 
+    private static func insertPendingSync(
+        _ pendingSync: FetchPendingIndexSync,
+        in context: NSManagedObjectContext
+    ) throws {
+        let entry = NSEntityDescription.insertNewObject(
+            forEntityName: EntityName.pendingSync.rawValue,
+            into: context
+        )
+        entry.setValue(pendingSync.id.rawValue, forKey: PendingSyncProperty.id.rawValue)
+        entry.setValue(pendingSync.createdAt, forKey: PendingSyncProperty.createdAt.rawValue)
+        entry.setValue(
+            try JSONEncoder().encode(pendingSync.changeset),
+            forKey: PendingSyncProperty.changesetData.rawValue
+        )
+    }
+
+    private static func makePendingSync(from object: NSManagedObject) throws -> FetchPendingIndexSync {
+        guard
+            let id = object.value(forKey: PendingSyncProperty.id.rawValue) as? String,
+            let createdAt = object.value(forKey: PendingSyncProperty.createdAt.rawValue) as? Date,
+            let data = object.value(forKey: PendingSyncProperty.changesetData.rawValue) as? Data
+        else {
+            throw StoreError.decodeFailed("A pending sync entry is missing one or more required fields.")
+        }
+
+        do {
+            return FetchPendingIndexSync(
+                id: FetchPendingIndexSyncID(id),
+                changeset: try JSONDecoder().decode(FetchIndexingChangeset.self, from: data),
+                createdAt: createdAt
+            )
+        } catch {
+            throw StoreError.decodeFailed(error.localizedDescription)
+        }
+    }
+
     private static func makePersistentContainer(configuration: Configuration) async throws -> NSPersistentContainer {
         let container = NSPersistentContainer(
             name: modelName,
@@ -340,7 +425,17 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
         documentEntity.properties.append(metadataEntriesRelationship)
         metadataEntryEntity.properties.append(documentRelationship)
 
-        model.entities = [documentEntity, metadataEntryEntity]
+        let pendingSyncEntity = NSEntityDescription()
+        pendingSyncEntity.name = EntityName.pendingSync.rawValue
+        pendingSyncEntity.managedObjectClassName = NSStringFromClass(NSManagedObject.self)
+        pendingSyncEntity.properties = [
+            makeAttribute(name: PendingSyncProperty.id.rawValue, type: .stringAttributeType),
+            makeAttribute(name: PendingSyncProperty.createdAt.rawValue, type: .dateAttributeType),
+            makeAttribute(name: PendingSyncProperty.changesetData.rawValue, type: .binaryDataAttributeType),
+        ]
+        pendingSyncEntity.uniquenessConstraints = [[PendingSyncProperty.id.rawValue]]
+
+        model.entities = [documentEntity, metadataEntryEntity, pendingSyncEntity]
         return model
     }
 
@@ -360,6 +455,7 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
 private enum EntityName: String {
     case document = "FetchStoredDocument"
     case metadataEntry = "FetchStoredDocumentMetadataEntry"
+    case pendingSync = "FetchPendingIndexSyncOperation"
 }
 
 private enum StoredDocumentProperty: String {
@@ -380,4 +476,10 @@ private enum MetadataEntryProperty: String {
     case key
     case value
     case document
+}
+
+private enum PendingSyncProperty: String {
+    case id
+    case createdAt
+    case changesetData
 }

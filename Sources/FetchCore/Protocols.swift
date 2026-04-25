@@ -3,6 +3,8 @@ public protocol FetchDocumentStore: Sendable {
     func document(id: FetchDocumentID) async throws -> FetchDocumentRecord?
     func removeDocuments(withIDs ids: [FetchDocumentID]) async throws -> FetchStoreMutationResult
     func removeAllDocuments() async throws -> FetchStoreMutationResult
+    func pendingIndexSyncs() async throws -> [FetchPendingIndexSync]
+    func removePendingIndexSyncs(withIDs ids: [FetchPendingIndexSyncID]) async throws
 }
 
 public protocol FetchIndex: Sendable {
