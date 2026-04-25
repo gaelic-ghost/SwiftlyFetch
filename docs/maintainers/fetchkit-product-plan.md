@@ -75,7 +75,9 @@ Current status:
 - the store-to-index boundary now uses a richer index-facing payload instead of dropping typed record fields through the sync changeset
 - `FetchKitLibrary` now offers a default in-memory construction path plus explicit dependency injection for custom store and index implementations
 - the public facade now includes singular and batch document verbs, a tighter `document(withID:)` lookup surface, and typed batch results for write operations
-- backend work is still intentionally deferred until the Core Data model and Search Kit sync boundary are designed explicitly
+- `FetchKit` now has its first Core Data-backed `FetchDocumentStore` implementation, built from a programmatic Core Data model that matches the current durable record shape
+- the store side now produces explicit `FetchIndexingChangeset` values through `FetchStoreMutationResult`, so the index-sync boundary is derived from real store writes instead of being reconstructed ad hoc in the facade
+- Search Kit is still intentionally deferred until the durable corpus store and record mapping prove themselves in code
 
 `FetchKit` should be the opinionated implementation layer.
 

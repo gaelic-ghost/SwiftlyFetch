@@ -1,8 +1,8 @@
 public protocol FetchDocumentStore: Sendable {
-    func upsert(_ records: [FetchDocumentRecord]) async throws
+    func upsert(_ records: [FetchDocumentRecord]) async throws -> FetchStoreMutationResult
     func document(id: FetchDocumentID) async throws -> FetchDocumentRecord?
-    func removeDocuments(withIDs ids: [FetchDocumentID]) async throws
-    func removeAllDocuments() async throws
+    func removeDocuments(withIDs ids: [FetchDocumentID]) async throws -> FetchStoreMutationResult
+    func removeAllDocuments() async throws -> FetchStoreMutationResult
 }
 
 public protocol FetchIndex: Sendable {

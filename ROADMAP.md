@@ -148,6 +148,8 @@ Planned
 - [x] Review the `FetchKitLibrary` method naming and result shapes for a tighter Cocoa-style API, including the document lookup surface and whether write operations should return typed summaries.
 - [x] Decide the first public-facing `SwiftlyFetch` product wording for the family once `FetchKit` work begins landing in code.
 - [x] Decide what iOS-first-class support means at the family level while the first concrete full-text backend remains macOS-first.
+- [x] Add the first Core Data-backed `FetchDocumentStore` implementation in `FetchKit`, keeping the current in-memory index as the search companion for now.
+- [x] Add the first explicit store-write to indexing-changeset seam so future index backends can consume real store mutations instead of facade-reconstructed writes.
 
 ### Exit Criteria
 
@@ -190,4 +192,6 @@ Planned
 - Added the first `FetchKitLibrary` facade so conventional search now has a small typed public API surface in code.
 - Added the first `FetchKitLibrary` configuration and API-polish pass with a default in-memory backend, singular conveniences, and typed batch results.
 - Settled the first public `SwiftlyFetch` family wording and clarified that iOS stays first-class through portable `FetchCore` plus a later backend, while the first full-text backend remains macOS-first.
+- Added the first Core Data-backed `FetchDocumentStore` implementation and tests, while keeping the current in-memory index as the conventional-search companion backend.
+- Added the first store-produced indexing-changeset seam and surfaced pending index updates when the apply step fails.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.

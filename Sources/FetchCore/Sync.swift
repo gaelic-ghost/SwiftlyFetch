@@ -3,6 +3,25 @@ public enum FetchIndexChange: Hashable, Codable, Sendable {
     case remove(FetchDocumentID)
 }
 
+public struct FetchStoreMutationResult: Hashable, Codable, Sendable {
+    public let indexingChangeset: FetchIndexingChangeset
+
+    public init(indexingChangeset: FetchIndexingChangeset) {
+        self.indexingChangeset = indexingChangeset
+    }
+
+    public var affectedDocumentIDs: [FetchDocumentID] {
+        let upsertedIDs = indexingChangeset.upsertedDocuments.map(\.id)
+        let removedIDs = indexingChangeset.removedDocumentIDs
+        var seen = Set<FetchDocumentID>()
+        return (upsertedIDs + removedIDs).filter { seen.insert($0).inserted }
+    }
+
+    public var isEmpty: Bool {
+        indexingChangeset.isEmpty
+    }
+}
+
 public struct FetchIndexingChangeset: Hashable, Codable, Sendable {
     public let changes: [FetchIndexChange]
 

@@ -22,7 +22,7 @@ An Apple-first Swift Package family for local document search and semantic retri
 
 SwiftlyFetch is the umbrella product direction for a small family of Apple-first local search packages. The product goal is simple: hand the system a local corpus and get back a real search engine, with conventional search and semantic retrieval both living under one coherent Swift-native story. In practical terms, SwiftlyFetch is the family for "drop in a corpus, get back local search," with `FetchKit` covering conventional full-document search and `RAGKit` covering semantic retrieval over the same broader corpus model.
 
-Today, the package exposes `RAGCore` and `RAGKit` for shipped semantic retrieval work, plus an early `FetchCore` foundation target for the portable conventional-search vocabulary, durable document-record model, and indexing-changeset boundary that supports the first `FetchKitLibrary` facade in `FetchKit`. That record model now carries first-class typed lifecycle and source fields like `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while leaving the freeform metadata bag string-based. `FetchCore` also distinguishes between the durable stored record, the lean search-facing document view, and the richer index-facing payload used by the sync boundary. `FetchKitLibrary` now supports a default in-memory construction path so top-level callers can start with a Swifty search-library entry point before the Core Data plus SearchKit backend lands.
+Today, the package exposes `RAGCore` and `RAGKit` for shipped semantic retrieval work, plus an early `FetchCore` foundation target for the portable conventional-search vocabulary, durable document-record model, and indexing-changeset boundary that supports the first `FetchKitLibrary` facade in `FetchKit`. That record model now carries first-class typed lifecycle and source fields like `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while leaving the freeform metadata bag string-based. `FetchCore` also distinguishes between the durable stored record, the lean search-facing document view, and the richer index-facing payload used by the sync boundary. `FetchKitLibrary` now supports a default in-memory construction path, and `FetchKit` also includes the first Core Data-backed `FetchDocumentStore` implementation plus a store-produced indexing-changeset seam so the durable corpus model and future index sync path are both real code now.
 
 The intended family split is:
 
@@ -136,6 +136,7 @@ Supported today:
 - use deterministic hashing embeddings for tests, previews, and fully local examples
 - use Apple Natural Language embeddings for on-device semantic retrieval on supported platforms
 - use `FetchKitLibrary()` with a default in-memory backend or inject custom `FetchDocumentStore` and `FetchIndex` implementations explicitly
+- use a real Core Data-backed `FetchDocumentStore` in `FetchKit` while the first Search Kit index backend is still pending
 - narrow retrieval with typed metadata filters
 - preserve meaningful markdown structure for retrieval, including heading paths, list semantics, quote-heavy documents, code-heavy documents, short section breaks, images, and a narrow raw-HTML whitelist
 - turn ranked search results into plain or annotated context text for downstream UI or model consumers

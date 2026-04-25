@@ -1,6 +1,16 @@
 import FetchCore
 
 public actor FetchKitLibrary {
+    public struct IndexSyncError: Error, Sendable {
+        public let changeset: FetchIndexingChangeset
+        public let underlyingErrorDescription: String
+
+        public init(changeset: FetchIndexingChangeset, underlyingError: Error) {
+            self.changeset = changeset
+            self.underlyingErrorDescription = String(describing: underlyingError)
+        }
+    }
+
     public struct Configuration: Hashable, Sendable {
         public enum Backend: String, Hashable, Codable, Sendable {
             case inMemory
@@ -85,18 +95,14 @@ public actor FetchKitLibrary {
             return BatchResult(documentIDs: [])
         }
 
-        try await documentStore.removeDocuments(withIDs: ids)
-        try await index.apply(
-            FetchIndexingChangeset(
-                ids.map { .remove($0) }
-            )
-        )
-        return BatchResult(documentIDs: ids)
+        let mutation = try await documentStore.removeDocuments(withIDs: ids)
+        try await applyIndexingChanges(for: mutation)
+        return BatchResult(documentIDs: mutation.affectedDocumentIDs)
     }
 
     public func removeAllDocuments() async throws {
-        try await documentStore.removeAllDocuments()
-        try await index.removeAllDocuments()
+        let mutation = try await documentStore.removeAllDocuments()
+        try await applyIndexingChanges(for: mutation)
     }
 
     public func search(_ query: FetchSearchQuery) async throws -> [FetchSearchResult] {
@@ -124,12 +130,23 @@ public actor FetchKitLibrary {
             return BatchResult(documentIDs: [])
         }
 
-        try await documentStore.upsert(records)
-        try await index.apply(
-            FetchIndexingChangeset(
-                records.map { .upsert($0.indexDocument) }
+        let mutation = try await documentStore.upsert(records)
+        try await applyIndexingChanges(for: mutation)
+        return BatchResult(documentIDs: mutation.affectedDocumentIDs)
+    }
+
+    private func applyIndexingChanges(for mutation: FetchStoreMutationResult) async throws {
+        guard !mutation.isEmpty else {
+            return
+        }
+
+        do {
+            try await index.apply(mutation.indexingChangeset)
+        } catch {
+            throw IndexSyncError(
+                changeset: mutation.indexingChangeset,
+                underlyingError: error
             )
-        )
-        return BatchResult(documentIDs: records.map(\.id))
+        }
     }
 }

@@ -187,4 +187,23 @@ struct FetchCoreSearchModelTests {
         #expect(changeset.upsertedDocuments.isEmpty)
         #expect(changeset.removedDocumentIDs.isEmpty)
     }
+
+    @Test("Fetch store mutation results expose affected document IDs from the indexing changeset")
+    func fetchStoreMutationResultExposesAffectedDocumentIDs() {
+        let apple = FetchIndexDocument(
+            id: "doc-apple",
+            title: "Apple Guide",
+            body: "Apples are bright and crisp."
+        )
+        let result = FetchStoreMutationResult(
+            indexingChangeset: FetchIndexingChangeset([
+                .upsert(apple),
+                .remove("doc-apple"),
+                .remove("doc-orange"),
+            ])
+        )
+
+        #expect(result.affectedDocumentIDs == ["doc-apple", "doc-orange"])
+        #expect(!result.isEmpty)
+    }
 }

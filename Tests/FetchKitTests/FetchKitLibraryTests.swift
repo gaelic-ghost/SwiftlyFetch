@@ -116,6 +116,30 @@ struct FetchKitLibraryTests {
         #expect(results[0].document.id == "doc-apple")
         #expect(results[0].snippet?.text.contains("bright") == true)
     }
+
+    @Test("FetchKitLibrary surfaces pending indexing changes when the index apply step fails")
+    func fetchKitLibrarySurfacesPendingIndexingChanges() async throws {
+        let store = RecordingFetchDocumentStore()
+        let index = FailingFetchIndex()
+        let library = FetchKitLibrary(documentStore: store, index: index)
+        let record = FetchDocumentRecord(
+            id: "doc-apple",
+            title: "Apple Guide",
+            body: "Apples are bright and crisp."
+        )
+
+        do {
+            _ = try await library.addDocument(record)
+            Issue.record("Expected FetchKitLibrary to surface an index sync error.")
+        } catch let error as FetchKitLibrary.IndexSyncError {
+            #expect(error.changeset.upsertedDocuments == [record.indexDocument])
+        } catch {
+            Issue.record("Expected FetchKitLibrary.IndexSyncError but received \(String(describing: error)).")
+        }
+
+        let fetchedRecord = try await library.document(withID: "doc-apple")
+        #expect(fetchedRecord == record)
+    }
 }
 
 private actor RecordingFetchDocumentStore: FetchDocumentStore {
@@ -123,28 +147,47 @@ private actor RecordingFetchDocumentStore: FetchDocumentStore {
     private(set) var removedDocumentIDs: [FetchDocumentID] = []
     private(set) var storedDocuments: [FetchDocumentID: FetchDocumentRecord] = [:]
 
-    func upsert(_ records: [FetchDocumentRecord]) async throws {
+    func upsert(_ records: [FetchDocumentRecord]) async throws -> FetchStoreMutationResult {
         upsertedRecords.append(contentsOf: records)
         for record in records {
             storedDocuments[record.id] = record
         }
+
+        return FetchStoreMutationResult(
+            indexingChangeset: FetchIndexingChangeset(
+                records.map { .upsert($0.indexDocument) }
+            )
+        )
     }
 
     func document(id: FetchDocumentID) async throws -> FetchDocumentRecord? {
         storedDocuments[id]
     }
 
-    func removeDocuments(withIDs ids: [FetchDocumentID]) async throws {
+    func removeDocuments(withIDs ids: [FetchDocumentID]) async throws -> FetchStoreMutationResult {
         removedDocumentIDs.append(contentsOf: ids)
         for id in ids {
             storedDocuments[id] = nil
         }
+
+        return FetchStoreMutationResult(
+            indexingChangeset: FetchIndexingChangeset(
+                ids.map { .remove($0) }
+            )
+        )
     }
 
-    func removeAllDocuments() async throws {
+    func removeAllDocuments() async throws -> FetchStoreMutationResult {
+        let removedIDs = Array(storedDocuments.keys)
         storedDocuments.removeAll()
         upsertedRecords.removeAll()
         removedDocumentIDs.removeAll()
+
+        return FetchStoreMutationResult(
+            indexingChangeset: FetchIndexingChangeset(
+                removedIDs.map { .remove($0) }
+            )
+        )
     }
 }
 
@@ -169,5 +212,19 @@ private actor RecordingFetchIndex: FetchIndex {
     func search(_ query: FetchSearchQuery) async throws -> [FetchSearchResult] {
         receivedQueries.append(query)
         return searchResults
+    }
+}
+
+private actor FailingFetchIndex: FetchIndex {
+    struct Failure: Error {}
+
+    func apply(_ changeset: FetchIndexingChangeset) async throws {
+        throw Failure()
+    }
+
+    func removeAllDocuments() async throws {}
+
+    func search(_ query: FetchSearchQuery) async throws -> [FetchSearchResult] {
+        []
     }
 }
