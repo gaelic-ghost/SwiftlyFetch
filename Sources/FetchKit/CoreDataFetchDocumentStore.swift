@@ -35,9 +35,12 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
     private static let modelName = "FetchKitStore"
 
     private let persistentContainer: NSPersistentContainer
+    private let managedObjectContext: NSManagedObjectContext
 
     public init(configuration: Configuration = .inMemory) async throws {
-        self.persistentContainer = try await Self.makePersistentContainer(configuration: configuration)
+        let persistentContainer = try await Self.makePersistentContainer(configuration: configuration)
+        self.persistentContainer = persistentContainer
+        self.managedObjectContext = Self.makeManagedObjectContext(using: persistentContainer)
     }
 
     public func upsert(_ records: [FetchDocumentRecord]) async throws -> FetchStoreMutationResult {
@@ -195,35 +198,26 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
     private func performRead<T: Sendable>(
         _ operation: @escaping @Sendable (NSManagedObjectContext) throws -> T
     ) async throws -> T {
-        try await withCheckedThrowingContinuation { continuation in
-            persistentContainer.viewContext.perform {
-                do {
-                    continuation.resume(returning: try operation(self.persistentContainer.viewContext))
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
+        let context = managedObjectContext
+        return try await context.perform {
+            try operation(context)
         }
     }
 
     private func performWrite(
         _ operation: @escaping @Sendable (NSManagedObjectContext) throws -> Void
     ) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            persistentContainer.viewContext.perform {
-                do {
-                    let context = self.persistentContainer.viewContext
-                    try operation(context)
+        let context = managedObjectContext
+        try await context.perform {
+            do {
+                try operation(context)
 
-                    if context.hasChanges {
-                        try context.save()
-                    }
-
-                    continuation.resume()
-                } catch {
-                    self.persistentContainer.viewContext.rollback()
-                    continuation.resume(throwing: error)
+                if context.hasChanges {
+                    try context.save()
                 }
+            } catch {
+                context.rollback()
+                throw error
             }
         }
     }
@@ -357,8 +351,6 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
         }
 
         container.persistentStoreDescriptions = [description]
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
 
         return try await withCheckedThrowingContinuation { continuation in
             container.loadPersistentStores { _, error in
@@ -373,6 +365,13 @@ public actor CoreDataFetchDocumentStore: FetchDocumentStore {
                 }
             }
         }
+    }
+
+    private static func makeManagedObjectContext(using container: NSPersistentContainer) -> NSManagedObjectContext {
+        let context = container.newBackgroundContext()
+        context.automaticallyMergesChangesFromParent = true
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        return context
     }
 
     private static func makeManagedObjectModel() -> NSManagedObjectModel {

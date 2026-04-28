@@ -82,7 +82,9 @@ Current status:
 - the Search Kit crash isolation pass found that `SKIndex` teardown needed unretained adoption on create/open, and the direct opt-in Search Kit verification lane is green again under both `swift test` and `xcodebuild test`
 - that Search Kit verification lane is still local-only for now, while the repo defers any dedicated CI story for it
 - the persistent `FetchKitLibrary` construction path is now intentionally caller-shaped around one storage location, with an Application Support default plus a direct directory override, instead of asking app code to assemble separate Core Data and Search Kit URLs itself
-- Search Kit is still intentionally deferred until the durable corpus store and record mapping prove themselves in code
+- the CI investigation on GitHub-hosted macOS found that the Core Data-backed store path could abort under Swift Testing with `Incorrect actor executor assumption`, even after global test parallelism was disabled
+- that investigation surfaced two store-shape fixes worth keeping regardless of the runner: the durable Core Data store should use a private-queue background context instead of `viewContext`, and it should use Core Data's async `perform` API directly instead of manually bridging context work through checked continuations
+- the Core Data-backed store coverage now lives on XCTest rather than Swift Testing so the package keeps the newer test surface where it is stable while reserving the older runner for framework-heavy Core Data verification
 
 `FetchKit` should be the opinionated implementation layer.
 
@@ -207,6 +209,8 @@ The first Search Kit sync flow should be one-way and derived:
 In plain language: Core Data is the source of truth, Search Kit is a derived full-text cache, and `lastIndexedAt` is the durable marker that tells us whether the cache is caught up.
 
 The first pass should not try to make Search Kit authoritative for anything. Rebuildability matters more than clever bidirectional sync.
+
+One implementation constraint is now explicit from the CI audit: because `NSPersistentContainer.viewContext` is Apple's main-queue context, the durable store should not use it as the long-lived execution context for an actor-owned background store. A private-queue context created with `newBackgroundContext()` is the better fit for the store's job, and Core Data queue hops should use the framework's own async `perform` API instead of a manual continuation wrapper.
 
 ## First Indexing Rules
 

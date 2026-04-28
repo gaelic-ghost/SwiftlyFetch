@@ -154,6 +154,7 @@ Planned
 - [x] Add the first thin Search Kit-backed `FetchIndex` implementation on macOS, with direct Search Kit tests kept opt-in on a dedicated local macOS lane.
 - [x] Add a small repo-maintenance helper so the local opt-in Search Kit lane is one obvious command instead of a hand-written `xcodebuild` invocation.
 - [x] Tighten the persistent `FetchKitLibrary` construction surface so store and index locations feel polished and Cocoa-style for real app callers.
+- [x] Audit the first Core Data-backed store path on GitHub-hosted macOS, record the Swift Testing executor-assumption failure, move the Core Data verification lane to XCTest, and align the store implementation with a private-queue Core Data context plus async `perform`.
 - [ ] Refine conventional-search ranking and snippet behavior now that the first Search Kit backend is working end to end.
 
 ### Exit Criteria
@@ -206,3 +207,4 @@ Planned
 - Added a dedicated repo-maintenance helper for the local opt-in Search Kit test lane and recorded persistent-surface polish plus ranking/snippet refinement as the next FetchKit work.
 - Tightened the persistent `FetchKitLibrary` surface around one resolved storage location, with Application Support defaults plus a direct directory override for local callers.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.
+- Audited the Core Data-backed `FetchKit` store after a GitHub-hosted Swift Testing crash, recorded the executor-assumption findings, moved Core Data verification onto XCTest, and switched the durable store over to a private-queue Core Data context with the framework's async `perform` path.

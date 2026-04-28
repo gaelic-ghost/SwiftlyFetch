@@ -1,12 +1,10 @@
-import Foundation
-import Testing
 import FetchCore
+import Foundation
+import XCTest
 @testable import FetchKit
 
-@Suite("CoreDataFetchDocumentStore", .serialized)
-struct CoreDataFetchDocumentStoreTests {
-    @Test("CoreDataFetchDocumentStore round-trips durable records with typed fields and metadata")
-    func coreDataFetchDocumentStoreRoundTripsRecord() async throws {
+final class CoreDataFetchDocumentStoreTests: XCTestCase {
+    func testCoreDataFetchDocumentStoreRoundTripsRecord() async throws {
         let store = try await CoreDataFetchDocumentStore()
         let createdAt = Date(timeIntervalSince1970: 1_700_000_000)
         let updatedAt = Date(timeIntervalSince1970: 1_700_000_100)
@@ -32,13 +30,12 @@ struct CoreDataFetchDocumentStoreTests {
         let fetched = try await store.document(id: "doc-apple")
         let pendingSyncs = try await store.pendingIndexSyncs()
 
-        #expect(fetched == record)
-        #expect(mutation.pendingIndexSync?.changeset.upsertedDocuments == [record.indexDocument])
-        #expect(pendingSyncs.count == 1)
+        XCTAssertEqual(fetched, record)
+        XCTAssertEqual(mutation.pendingIndexSync?.changeset.upsertedDocuments, [record.indexDocument])
+        XCTAssertEqual(pendingSyncs.count, 1)
     }
 
-    @Test("CoreDataFetchDocumentStore replaces metadata and field values on upsert")
-    func coreDataFetchDocumentStoreReplacesMetadataOnUpsert() async throws {
+    func testCoreDataFetchDocumentStoreReplacesMetadataOnUpsert() async throws {
         let store = try await CoreDataFetchDocumentStore()
         let original = FetchDocumentRecord(
             id: "doc-apple",
@@ -65,11 +62,10 @@ struct CoreDataFetchDocumentStoreTests {
         _ = try await store.upsert([updated])
         let fetched = try await store.document(id: "doc-apple")
 
-        #expect(fetched == updated)
+        XCTAssertEqual(fetched, updated)
     }
 
-    @Test("CoreDataFetchDocumentStore reuses one document row when the same ID appears twice in one batch")
-    func coreDataFetchDocumentStoreHandlesDuplicateIDsInOneBatch() async throws {
+    func testCoreDataFetchDocumentStoreHandlesDuplicateIDsInOneBatch() async throws {
         let store = try await CoreDataFetchDocumentStore()
         let original = FetchDocumentRecord(
             id: "doc-apple",
@@ -86,13 +82,12 @@ struct CoreDataFetchDocumentStoreTests {
         let fetched = try await store.document(id: "doc-apple")
         let pendingSyncs = try await store.pendingIndexSyncs()
 
-        #expect(mutation.affectedDocumentIDs == ["doc-apple"])
-        #expect(fetched == updated)
-        #expect(pendingSyncs.count == 1)
+        XCTAssertEqual(mutation.affectedDocumentIDs, ["doc-apple"])
+        XCTAssertEqual(fetched, updated)
+        XCTAssertEqual(pendingSyncs.count, 1)
     }
 
-    @Test("CoreDataFetchDocumentStore removes selected documents")
-    func coreDataFetchDocumentStoreRemovesSelectedDocuments() async throws {
+    func testCoreDataFetchDocumentStoreRemovesSelectedDocuments() async throws {
         let store = try await CoreDataFetchDocumentStore()
         _ = try await store.upsert([
             FetchDocumentRecord(id: "doc-apple", body: "Apple"),
@@ -104,12 +99,11 @@ struct CoreDataFetchDocumentStoreTests {
         let removed = try await store.document(id: "doc-apple")
         let retained = try await store.document(id: "doc-orange")
 
-        #expect(removed == nil)
-        #expect(retained?.id == "doc-orange")
+        XCTAssertNil(removed)
+        XCTAssertEqual(retained?.id, "doc-orange")
     }
 
-    @Test("CoreDataFetchDocumentStore removes all stored documents")
-    func coreDataFetchDocumentStoreRemovesAllDocuments() async throws {
+    func testCoreDataFetchDocumentStoreRemovesAllDocuments() async throws {
         let store = try await CoreDataFetchDocumentStore()
         _ = try await store.upsert([
             FetchDocumentRecord(id: "doc-apple", body: "Apple"),
@@ -118,12 +112,14 @@ struct CoreDataFetchDocumentStoreTests {
 
         _ = try await store.removeAllDocuments()
 
-        #expect(try await store.document(id: "doc-apple") == nil)
-        #expect(try await store.document(id: "doc-orange") == nil)
+        let removedApple = try await store.document(id: "doc-apple")
+        let removedOrange = try await store.document(id: "doc-orange")
+
+        XCTAssertNil(removedApple)
+        XCTAssertNil(removedOrange)
     }
 
-    @Test("CoreDataFetchDocumentStore persists pending index syncs until they are acknowledged")
-    func coreDataFetchDocumentStorePersistsPendingSyncQueue() async throws {
+    func testCoreDataFetchDocumentStorePersistsPendingSyncQueue() async throws {
         let store = try await CoreDataFetchDocumentStore()
         let record = FetchDocumentRecord(
             id: "doc-apple",
@@ -134,17 +130,17 @@ struct CoreDataFetchDocumentStoreTests {
         let mutation = try await store.upsert([record])
         let pendingBeforeAck = try await store.pendingIndexSyncs()
 
-        #expect(pendingBeforeAck.count == 1)
-        #expect(pendingBeforeAck[0].changeset.upsertedDocuments == [record.indexDocument])
+        XCTAssertEqual(pendingBeforeAck.count, 1)
+        XCTAssertEqual(pendingBeforeAck[0].changeset.upsertedDocuments, [record.indexDocument])
 
         guard let pendingSync = mutation.pendingIndexSync else {
-            Issue.record("Expected the store mutation to create a pending index sync.")
+            XCTFail("Expected the store mutation to create a pending index sync.")
             return
         }
 
         try await store.removePendingIndexSyncs(withIDs: [pendingSync.id])
 
         let pendingAfterAck = try await store.pendingIndexSyncs()
-        #expect(pendingAfterAck.isEmpty)
+        XCTAssertTrue(pendingAfterAck.isEmpty)
     }
 }
