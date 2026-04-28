@@ -17,3 +17,6 @@ swift test --enable-xctest --disable-swift-testing
 
 log "Testing Swift Testing targets from $REPO_ROOT with global test parallelism disabled."
 swift test --disable-xctest --enable-swift-testing --no-parallel
+
+log "Testing Natural Language integration from $REPO_ROOT."
+sh "$REPO_MAINTENANCE_ROOT/run-nl-integration-tests.sh"
