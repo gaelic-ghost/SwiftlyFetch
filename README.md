@@ -15,7 +15,7 @@ An Apple-first Swift Package family for local document search and semantic retri
 
 ### Status
 
-`v0.1.1` is the current tagged package release and is stable enough to try locally.
+`v0.1.2` is the current tagged package release and is stable enough to try locally.
 
 ### What This Project Is
 
