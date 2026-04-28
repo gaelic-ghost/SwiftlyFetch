@@ -12,6 +12,7 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 - [Milestone 2: Post-v0.1.0 Refinement](#milestone-2-post-v010-refinement)
 - [Milestone 3: FetchKit Foundation](#milestone-3-fetchkit-foundation)
 - [Milestone 4: FetchKit Refinement](#milestone-4-fetchkit-refinement)
+- [Milestone 5: FetchKit Platform And CI Decisions](#milestone-5-fetchkit-platform-and-ci-decisions)
 - [Backlog Candidates](#backlog-candidates)
 - [History](#history)
 
@@ -31,7 +32,8 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 - Milestone 1: Retrieval Defaults - Completed
 - Milestone 2: Post-v0.1.0 Refinement - Completed
 - Milestone 3: FetchKit Foundation - Completed
-- Milestone 4: FetchKit Refinement - Planned
+- Milestone 4: FetchKit Refinement - In Progress
+- Milestone 5: FetchKit Platform And CI Decisions - Planned
 
 ## Milestone 0: Foundation
 
@@ -138,7 +140,7 @@ Completed
 
 ### Tickets
 
-- [ ] Add maintainer-facing `FetchKit` architecture guidance that explains the Core Data plus SearchKit model and its relationship to `RAGKit`.
+- [x] Add maintainer-facing `FetchKit` architecture guidance that explains the Core Data plus SearchKit model and its relationship to `RAGKit`.
 - [x] Define the first `FetchCore` model and protocol candidates for document records, queries, search results, snippets, and index synchronization.
 - [x] Add the first explicit `FetchCore` indexing changeset boundary so later `FetchKit` work can sync Core Data updates into a full-text index without ad hoc write paths.
 - [x] Define the first durable `FetchDocumentRecord` shape so Core Data-backed corpus storage can stay distinct from derived full-text indexing views.
@@ -154,7 +156,7 @@ Completed
 - [x] Add the first explicit store-write to indexing-changeset seam so future index backends can consume real store mutations instead of facade-reconstructed writes.
 - [x] Add a persisted pending index-sync queue so failed index applies can be retried after the original write call returns or the process restarts.
 - [x] Add the first thin Search Kit-backed `FetchIndex` implementation on macOS, with direct Search Kit tests kept opt-in on a dedicated local macOS lane.
-- [x] Add a small repo-maintenance helper so the local opt-in Search Kit lane is one obvious command instead of a hand-written `xcodebuild` invocation.
+- [x] Add a small repo-maintenance helper so the focused Search Kit lane is one obvious command instead of a hand-written `xcodebuild` invocation.
 - [x] Tighten the persistent `FetchKitLibrary` construction surface so store and index locations feel polished and Cocoa-style for real app callers.
 - [x] Audit the first Core Data-backed store path on GitHub-hosted macOS, record the Swift Testing executor-assumption failure, move the Core Data verification lane to XCTest, and align the store implementation with a private-queue Core Data context plus async `perform`.
 
@@ -168,33 +170,57 @@ Completed
 
 ### Status
 
-Planned
+In Progress
 
 ### Scope
 
-- [ ] Refine conventional-search ranking and snippet behavior now that the first SearchKit backend works end to end.
 - [x] Refine conventional-search ranking and snippet behavior now that the first SearchKit backend works end to end.
-- [ ] Decide whether the SearchKit-backed path needs a dedicated CI lane beyond the current local-only verification helper.
+- [ ] Validate whether the current refinement pass is enough for ordinary app callers or whether another real-corpus quality pass is needed.
 - [ ] Keep the public `FetchKitLibrary` surface polished as the conventional-search side moves from foundation into quality work.
 
 ### Tickets
 
 - [x] Refine ranking behavior for conventional search so the first SearchKit backend feels less like a raw index adapter and more like a library product.
 - [x] Improve snippet behavior and result presentation without bloating `FetchCore` into a larger query or rendering DSL.
-- [ ] Revisit the local-only SearchKit verification decision once the opt-in macOS lane has stayed stable long enough to justify a dedicated CI experiment.
+- [ ] Audit real-corpus result quality now that field-aware ranking, phrase weighting, truncation cues, and multi-term snippets are in place.
+- [ ] Decide whether title-only hits should suppress body snippets or use a different presentation policy in the public facade.
+- [ ] Keep the persistent `FetchKitLibrary` construction and search API surface under review as real callers exercise the current design.
 
 ### Exit Criteria
 
 - [x] Conventional-search results feel intentionally ranked and include useful snippet behavior for ordinary app callers.
-- [ ] The team has a clear answer on whether the SearchKit lane should stay local-only, move to a dedicated CI path, or remain intentionally manual.
+- [x] The SearchKit-backed path runs in normal local validation and the default GitHub CI lane.
 - [ ] `FetchKitLibrary` still reads like a small Swift-native facade instead of exposing backend detail drift.
+
+## Milestone 5: FetchKit Platform And CI Decisions
+
+### Status
+
+Planned
+
+### Scope
+
+- [ ] Decide the long-term verification story for the Apple-asset Natural Language lane.
+- [ ] Decide what first-class iOS support means for conventional search beyond the current portable `FetchCore` surface.
+- [ ] Keep the product-family docs honest about what is already shippable versus what is still macOS-first or local-only.
+
+### Tickets
+
+- [ ] Revisit whether Natural Language asset-backed verification should stay local-only, move to self-hosted CI, or remain intentionally opt-in.
+- [ ] Explore the first real iOS conventional-search backend direction, with Core Spotlight as the most likely Apple-native candidate.
+- [ ] Decide whether future platform/backend work belongs in `FetchKit` directly or should earn a clearer backend seam only once the next real implementation lands.
+
+### Exit Criteria
+
+- [ ] The repo has a stable, explicitly chosen verification story for its remaining framework-heavy optional lane.
+- [ ] The family docs describe macOS-first and iOS-first-class support without implying a backend that does not exist yet.
+- [ ] The next backend or CI experiment has been narrowed to one concrete path instead of an open-ended backlog note.
 
 ## Backlog Candidates
 
 - [ ] If parser-backed markdown chunking still leaves retrieval-quality gaps, add retrieval-specific chunking heuristics on top of the chosen markdown parser instead of rebuilding markdown parsing rules locally.
 - [ ] If asset-backed automation becomes important again, evaluate a self-hosted macOS runner with prewarmed assets before retrying a hosted GitHub Actions lane.
-- [ ] Explore dedicated CI options for the opt-in Search Kit lane once the local macOS path has stayed stable long enough to justify automation.
-- [ ] When `FetchKit` moves from docs into code, decide whether the first backend should live behind a SearchKit-specific module seam immediately or only after the first macOS implementation proves the stable `FetchCore` shape.
+- [ ] Consider a follow-on conventional-search quality pass only if real corpora show ranking, snippet, or result-presentation gaps beyond the current field-aware heuristics.
 
 ## History
 
@@ -229,9 +255,12 @@ Planned
 - Added the first store-produced indexing-changeset seam and surfaced pending index updates when the apply step fails.
 - Added a persisted pending index-sync queue plus retry APIs so failed index applies can be acknowledged later instead of being recoverable only from the immediate thrown error.
 - Added the first thin macOS Search Kit index backend and moved the direct Search Kit suite onto XCTest-style opt-in gating.
-- Fixed Search Kit index ownership during teardown so the opt-in Search Kit verification lane is green again under both `swift test` and `xcodebuild test`.
-- Added a dedicated repo-maintenance helper for the local opt-in Search Kit test lane and recorded persistent-surface polish plus ranking/snippet refinement as the next FetchKit work.
+- Fixed Search Kit index ownership during teardown so the Search Kit verification lane is green again under both `swift test` and `xcodebuild test`.
+- Added a dedicated repo-maintenance helper for the focused Search Kit test lane and recorded persistent-surface polish plus ranking/snippet refinement as the next FetchKit work.
 - Tightened the persistent `FetchKitLibrary` surface around one resolved storage location, with Application Support defaults plus a direct directory override for local callers.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.
 - Audited the Core Data-backed `FetchKit` store after a GitHub-hosted Swift Testing crash, recorded the executor-assumption findings, moved Core Data verification onto XCTest, and switched the durable store over to a private-queue Core Data context with the framework's async `perform` path.
 - Refined conventional-search result quality with modest field-aware ranking plus query-aware multi-term snippets across the in-memory and SearchKit-backed `FetchKit` paths.
+- Polished conventional-search result presentation with stronger phrase weighting and visible snippet truncation cues, then shipped that refinement as `v0.1.2`.
+- Promoted the SearchKit-backed test suite from a local opt-in lane into normal XCTest validation and the default GitHub CI path once the lane proved fast and stable enough.
+- Opened the next roadmap phase around SearchKit/Natural Language verification strategy, iOS conventional-search backend direction, and another caller-driven `FetchKitLibrary` polish pass if real usage shows it is needed.
