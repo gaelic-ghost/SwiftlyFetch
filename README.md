@@ -7,8 +7,7 @@ An Apple-first Swift Package family for local document search and semantic retri
 - [Overview](#overview)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
-- [Development](#development)
-- [Repo Structure](#repo-structure)
+- [Package Status](#package-status)
 - [Release Notes](#release-notes)
 - [License](#license)
 
@@ -153,74 +152,23 @@ Supported today:
 - preserve meaningful markdown structure for retrieval, including heading paths, list semantics, quote-heavy documents, code-heavy documents, short section breaks, images, and a narrow raw-HTML whitelist
 - turn ranked search results into plain or annotated context text for downstream UI or model consumers
 
-## Development
+## Package Status
 
-### Setup
+SwiftlyFetch is usable today as a local Apple-first package family, but it is still early in the broader product arc.
 
-1. Install a Swift 6.1-era toolchain or newer.
-2. Clone the repository.
-3. Run `swift build` once to resolve the package and confirm the local toolchain matches the manifest.
+Good current fits:
 
-### Workflow
+- app-level semantic retrieval over local plain-text and markdown corpora
+- conventional-search experimentation through the first `FetchCore` and `FetchKit` surfaces
+- Apple-first local search prototypes where Core Data, SearchKit, and on-device retrieval matter
 
-Use `Package.swift` as the source of truth for package structure, targets, and dependencies. The repo-maintenance toolkit lives under `scripts/repo-maintenance/`, and ordinary package work should stay on the default SwiftPM path unless Xcode-managed behavior is explicitly needed. The current code surface lives primarily under `Sources/RAGCore/`, `Sources/FetchCore/`, and `Sources/RAGKit/`.
+Current constraints:
 
-### Validation
+- the SearchKit backend is macOS-first
+- Natural Language asset-backed verification stays opt-in and local-only
+- the package family direction is broader than the currently shipped polished surface, especially on the `FetchKit` side
 
-Use the standard package checks for day-to-day work:
-
-```sh
-swift build
-swift test
-scripts/repo-maintenance/validate-all.sh
-```
-
-Opt-in Natural Language integration coverage is available when you explicitly enable it:
-
-```sh
-RUN_NL_INTEGRATION_TESTS=1 swift test --filter NaturalLanguageEmbedderIntegrationTests
-```
-
-That Natural Language verification is local-only for now. A GitHub-hosted `macos-15` lane was able to start the asset-backed test path, but the hosted run sat in the Natural Language integration step until the job timeout, so the default GitHub Actions workflow stays asset-independent.
-
-The first Search Kit backend is also held out from default validation and kept to an explicit local macOS opt-in lane for now:
-
-```sh
-scripts/repo-maintenance/run-searchkit-tests.sh
-```
-
-That backend is implemented in code, and the Search Kit suite now lives behind XCTest-style opt-in gating so the default package path stays clean. The helper uses the stable SwiftPM-local path, and the direct lane is green again after fixing Search Kit index ownership during teardown. If you want the explicit Xcode-managed variant for local investigation, this also works:
-
-```sh
-TEST_RUNNER_RUN_SEARCHKIT_TESTS=1 xcodebuild test \
-  -scheme SwiftlyFetch-Package \
-  -destination 'platform=macOS' \
-  -only-testing:FetchKitTests/SearchKitFetchIndexTests
-```
-
-## Repo Structure
-
-```text
-.
-├── Package.swift
-├── Sources/
-│   ├── RAGCore/
-│   ├── FetchCore/
-│   ├── FetchKit/
-│   └── RAGKit/
-├── Tests/
-│   ├── RAGCoreTests/
-│   ├── FetchCoreTests/
-│   ├── FetchKitTests/
-│   ├── RAGKitTests/
-│   └── RAGKitIntegrationTests/
-├── docs/
-│   └── maintainers/
-├── scripts/
-│   └── repo-maintenance/
-└── .github/
-    └── workflows/
-```
+If you want to contribute to the package itself, use [CONTRIBUTING.md](./CONTRIBUTING.md). Maintainer planning and architecture notes live under [docs/maintainers/](./docs/maintainers/).
 
 ## Release Notes
 
