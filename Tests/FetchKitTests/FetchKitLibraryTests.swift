@@ -3,7 +3,7 @@ import Testing
 import FetchCore
 @testable import FetchKit
 
-@Suite("FetchKitLibrary")
+@Suite("FetchKitLibrary", .serialized)
 struct FetchKitLibraryTests {
     @Test("FetchKitLibrary adds documents through the store and index")
     func fetchKitLibraryAddsDocuments() async throws {

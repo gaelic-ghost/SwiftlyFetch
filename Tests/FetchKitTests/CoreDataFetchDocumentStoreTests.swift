@@ -3,7 +3,7 @@ import Testing
 import FetchCore
 @testable import FetchKit
 
-@Suite("CoreDataFetchDocumentStore")
+@Suite("CoreDataFetchDocumentStore", .serialized)
 struct CoreDataFetchDocumentStoreTests {
     @Test("CoreDataFetchDocumentStore round-trips durable records with typed fields and metadata")
     func coreDataFetchDocumentStoreRoundTripsRecord() async throws {
