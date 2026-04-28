@@ -161,6 +161,47 @@ struct FetchKitLibraryTests {
         #expect(snippet.matchRanges.count >= 2)
     }
 
+    @Test("FetchKitLibrary snippets show truncation markers when context is cropped")
+    func fetchKitLibrarySnippetShowsTruncationMarkers() async throws {
+        let library = FetchKitLibrary()
+
+        try await library.addDocument(
+            FetchDocumentRecord(
+                id: "doc-apple",
+                title: "Apple Guide",
+                body: "Introductory orchard notes cover storage, pruning, rootstock selection, irrigation strategy, and pollination planning before the bright apple section becomes especially relevant for fall harvest planning and storage."
+            )
+        )
+
+        let results = try await library.search("bright apple section", fields: [.body], limit: 1)
+        let snippet = try #require(results.first?.snippet)
+
+        #expect(snippet.text.hasPrefix("…"))
+        #expect(snippet.text.hasSuffix("…"))
+    }
+
+    @Test("FetchKitLibrary exact phrase queries outrank prefix-style body matches")
+    func fetchKitLibraryExactPhraseOutranksPrefixMatches() async throws {
+        let library = FetchKitLibrary()
+
+        try await library.addDocuments([
+            FetchDocumentRecord(
+                id: "doc-phrase",
+                title: "Harvest Guide",
+                body: "The exact bright apple phrase appears together here."
+            ),
+            FetchDocumentRecord(
+                id: "doc-prefix",
+                title: "Harvest Guide",
+                body: "Bright fruit notes mention apples nearby but not as an exact phrase."
+            ),
+        ])
+
+        let results = try await library.search("\"bright apple\"", kind: .exactPhrase, fields: [.body], limit: 5)
+
+        #expect(results.map(\.document.id) == ["doc-phrase"])
+    }
+
     @Test("FetchKitLibrary surfaces pending indexing changes when the index apply step fails")
     func fetchKitLibrarySurfacesPendingIndexingChanges() async throws {
         let store = RecordingFetchDocumentStore()

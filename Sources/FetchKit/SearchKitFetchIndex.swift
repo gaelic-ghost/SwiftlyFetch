@@ -275,7 +275,7 @@ public actor SearchKitFetchIndex: FetchIndex {
             }
         }
 
-        return normalize(matches: results, for: field)
+        return normalize(matches: results, for: field, kind: query.kind)
     }
 
     private func makeSearchMatch(
@@ -338,13 +338,14 @@ public actor SearchKitFetchIndex: FetchIndex {
 
     private func normalize(
         matches: [FieldSearchMatch],
-        for field: FetchSearchField
+        for field: FetchSearchField,
+        kind: FetchSearchKind
     ) -> [FieldSearchMatch] {
         guard let maxScore = matches.map(\.score).max(), maxScore > 0 else {
             return matches
         }
 
-        let weight = FetchSearchSupport.fieldWeight(for: field)
+        let weight = FetchSearchSupport.fieldWeight(for: field) * FetchSearchSupport.queryKindWeight(for: kind)
         return matches.map { match in
             FieldSearchMatch(
                 document: match.document,

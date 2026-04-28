@@ -100,19 +100,26 @@ actor InMemoryFetchIndex: FetchIndex {
 
         switch query.kind {
         case .exactPhrase:
-            guard lowercaseText.range(of: lowercaseQuery) != nil else {
+            let phrase = FetchSearchSupport.exactPhraseText(from: query)
+            guard !phrase.isEmpty, lowercaseText.range(of: phrase) != nil else {
                 return nil
             }
 
             return SearchMatch(
                 field: field,
                 text: text,
-                score: boostedScore(base: 1.0, field: field)
+                score: boostedScore(base: 1.0, field: field, kind: query.kind)
             )
         case .prefix:
             return prefixMatch(field: field, text: text, lowercaseText: lowercaseText, lowercaseQuery: lowercaseQuery)
         case .allTerms, .naturalLanguage:
-            return allTermsMatch(field: field, text: text, lowercaseText: lowercaseText, lowercaseQuery: lowercaseQuery)
+            return allTermsMatch(
+                field: field,
+                text: text,
+                lowercaseText: lowercaseText,
+                lowercaseQuery: lowercaseQuery,
+                kind: query.kind
+            )
         }
     }
 
@@ -134,7 +141,7 @@ actor InMemoryFetchIndex: FetchIndex {
         return SearchMatch(
             field: field,
             text: text,
-            score: boostedScore(base: 0.9, field: field)
+            score: boostedScore(base: 0.9, field: field, kind: .prefix)
         )
     }
 
@@ -142,7 +149,8 @@ actor InMemoryFetchIndex: FetchIndex {
         field: FetchSearchField,
         text: String,
         lowercaseText: String,
-        lowercaseQuery: String
+        lowercaseQuery: String,
+        kind: FetchSearchKind
     ) -> SearchMatch? {
         let terms = lowercaseQuery
             .split(whereSeparator: \.isWhitespace)
@@ -162,12 +170,18 @@ actor InMemoryFetchIndex: FetchIndex {
         return SearchMatch(
             field: field,
             text: text,
-            score: boostedScore(base: 0.8 + (0.02 * Double(terms.count)), field: field)
+            score: boostedScore(base: 0.8 + (0.02 * Double(terms.count)), field: field, kind: kind)
         )
     }
 
-    private func boostedScore(base: Double, field: FetchSearchField) -> Double {
-        base * FetchSearchSupport.fieldWeight(for: field)
+    private func boostedScore(
+        base: Double,
+        field: FetchSearchField,
+        kind: FetchSearchKind
+    ) -> Double {
+        base
+            * FetchSearchSupport.fieldWeight(for: field)
+            * FetchSearchSupport.queryKindWeight(for: kind)
     }
 
     private func preferredSnippetMatch(from matches: [SearchMatch]) -> SearchMatch? {

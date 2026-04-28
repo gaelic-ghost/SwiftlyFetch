@@ -21,12 +21,32 @@ enum FetchSearchSupport {
             .filter { !$0.isEmpty && seen.insert($0).inserted }
     }
 
+    static func exactPhraseText(from query: FetchSearchQuery) -> String {
+        query.text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\"", with: "")
+            .lowercased()
+    }
+
     static func fieldWeight(for field: FetchSearchField) -> Double {
         switch field {
         case .title:
             1.2
         case .body:
             1.0
+        }
+    }
+
+    static func queryKindWeight(for kind: FetchSearchKind) -> Double {
+        switch kind {
+        case .exactPhrase:
+            1.3
+        case .prefix:
+            1.1
+        case .allTerms:
+            1.0
+        case .naturalLanguage:
+            0.95
         }
     }
 
@@ -52,7 +72,10 @@ enum FetchSearchSupport {
             preferredLength: preferredLength,
             leadingContext: leadingContext
         )
-        let snippetText = String(text[snippetBounds])
+        let snippetText = truncatedSnippetText(
+            from: text,
+            bounds: snippetBounds
+        )
         let matchRanges = matches.compactMap { snippetRange(for: $0, within: snippetBounds, in: text) }
 
         return FetchSnippet(
@@ -205,7 +228,31 @@ enum FetchSearchSupport {
     }
 
     private static func fallbackSnippetText(from text: String, limit: Int) -> String {
-        String(text.prefix(limit)).trimmingCharacters(in: .whitespacesAndNewlines)
+        let prefix = String(text.prefix(limit)).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.count > limit else {
+            return prefix
+        }
+
+        return prefix + "…"
+    }
+
+    private static func truncatedSnippetText(
+        from text: String,
+        bounds: Range<String.Index>
+    ) -> String {
+        let hasLeadingOmission = bounds.lowerBound > text.startIndex
+        let hasTrailingOmission = bounds.upperBound < text.endIndex
+        let base = String(text[bounds]).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var snippet = base
+        if hasLeadingOmission {
+            snippet = "…" + snippet
+        }
+        if hasTrailingOmission {
+            snippet += "…"
+        }
+
+        return snippet
     }
 }
 
