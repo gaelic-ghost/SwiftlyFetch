@@ -56,18 +56,19 @@ actor InMemoryFetchIndex: FetchIndex {
             )
         }
 
-        guard let bestMatch = matches.max(by: { $0.score < $1.score }) else {
+        guard !matches.isEmpty else {
             return nil
         }
 
+        let score = matches.reduce(0) { $0 + $1.score }
+        let snippetMatch = preferredSnippetMatch(from: matches)
+
         return FetchSearchResult(
             document: document.searchDocument,
-            score: bestMatch.score,
-            snippet: makeSnippet(
-                text: bestMatch.text,
-                lowerBound: bestMatch.lowerBound,
-                upperBound: bestMatch.upperBound
-            )
+            score: score,
+            snippet: snippetMatch.flatMap { match in
+                FetchSearchSupport.buildSnippet(from: match.text, query: query)
+            }
         )
     }
 
@@ -99,20 +100,26 @@ actor InMemoryFetchIndex: FetchIndex {
 
         switch query.kind {
         case .exactPhrase:
-            guard let range = lowercaseText.range(of: lowercaseQuery) else {
+            let phrase = FetchSearchSupport.exactPhraseText(from: query)
+            guard !phrase.isEmpty, lowercaseText.range(of: phrase) != nil else {
                 return nil
             }
 
             return SearchMatch(
+                field: field,
                 text: text,
-                lowerBound: lowercaseText.distance(from: lowercaseText.startIndex, to: range.lowerBound),
-                upperBound: lowercaseText.distance(from: lowercaseText.startIndex, to: range.upperBound),
-                score: boostedScore(base: 1.0, field: field)
+                score: boostedScore(base: 1.0, field: field, kind: query.kind)
             )
         case .prefix:
             return prefixMatch(field: field, text: text, lowercaseText: lowercaseText, lowercaseQuery: lowercaseQuery)
         case .allTerms, .naturalLanguage:
-            return allTermsMatch(field: field, text: text, lowercaseText: lowercaseText, lowercaseQuery: lowercaseQuery)
+            return allTermsMatch(
+                field: field,
+                text: text,
+                lowercaseText: lowercaseText,
+                lowercaseQuery: lowercaseQuery,
+                kind: query.kind
+            )
         }
     }
 
@@ -127,15 +134,14 @@ actor InMemoryFetchIndex: FetchIndex {
             return nil
         }
 
-        guard let range = lowercaseText.range(of: lowercaseQuery) else {
+        guard lowercaseText.range(of: lowercaseQuery) != nil else {
             return nil
         }
 
         return SearchMatch(
+            field: field,
             text: text,
-            lowerBound: lowercaseText.distance(from: lowercaseText.startIndex, to: range.lowerBound),
-            upperBound: lowercaseText.distance(from: lowercaseText.startIndex, to: range.upperBound),
-            score: boostedScore(base: 0.9, field: field)
+            score: boostedScore(base: 0.9, field: field, kind: .prefix)
         )
     }
 
@@ -143,7 +149,8 @@ actor InMemoryFetchIndex: FetchIndex {
         field: FetchSearchField,
         text: String,
         lowercaseText: String,
-        lowercaseQuery: String
+        lowercaseQuery: String,
+        kind: FetchSearchKind
     ) -> SearchMatch? {
         let terms = lowercaseQuery
             .split(whereSeparator: \.isWhitespace)
@@ -156,54 +163,48 @@ actor InMemoryFetchIndex: FetchIndex {
             return nil
         }
 
-        guard let firstTerm = terms.first, let range = lowercaseText.range(of: firstTerm) else {
+        guard let firstTerm = terms.first, lowercaseText.range(of: firstTerm) != nil else {
             return nil
         }
 
         return SearchMatch(
+            field: field,
             text: text,
-            lowerBound: lowercaseText.distance(from: lowercaseText.startIndex, to: range.lowerBound),
-            upperBound: lowercaseText.distance(from: lowercaseText.startIndex, to: range.upperBound),
-            score: boostedScore(base: 0.8 + (0.02 * Double(terms.count)), field: field)
+            score: boostedScore(base: 0.8 + (0.02 * Double(terms.count)), field: field, kind: kind)
         )
     }
 
-    private func boostedScore(base: Double, field: FetchSearchField) -> Double {
-        switch field {
-        case .title:
-            base + 0.1
-        case .body:
-            base
+    private func boostedScore(
+        base: Double,
+        field: FetchSearchField,
+        kind: FetchSearchKind
+    ) -> Double {
+        base
+            * FetchSearchSupport.fieldWeight(for: field)
+            * FetchSearchSupport.queryKindWeight(for: kind)
+    }
+
+    private func preferredSnippetMatch(from matches: [SearchMatch]) -> SearchMatch? {
+        matches.max {
+            if $0.field == $1.field {
+                return $0.score < $1.score
+            }
+
+            if $0.field == .body {
+                return false
+            }
+
+            if $1.field == .body {
+                return true
+            }
+
+            return $0.score < $1.score
         }
-    }
-
-    private func makeSnippet(text: String, lowerBound: Int, upperBound: Int) -> FetchSnippet {
-        let snippetRange = snippetBounds(for: text, lowerBound: lowerBound, upperBound: upperBound)
-        let snippetText = String(text[snippetRange])
-        let snippetLowerBound = text.distance(from: snippetRange.lowerBound, to: text.index(text.startIndex, offsetBy: lowerBound))
-        let snippetUpperBound = text.distance(from: snippetRange.lowerBound, to: text.index(text.startIndex, offsetBy: upperBound))
-
-        return FetchSnippet(
-            text: snippetText,
-            matchRanges: [
-                FetchMatchRange(
-                    lowerBound: snippetLowerBound,
-                    upperBound: snippetUpperBound
-                ),
-            ]
-        )
-    }
-
-    private func snippetBounds(for text: String, lowerBound: Int, upperBound: Int) -> Range<String.Index> {
-        let startIndex = text.index(text.startIndex, offsetBy: max(0, lowerBound - 24))
-        let endIndex = text.index(text.startIndex, offsetBy: min(text.count, upperBound + 24))
-        return startIndex..<endIndex
     }
 }
 
 private struct SearchMatch {
+    let field: FetchSearchField
     let text: String
-    let lowerBound: Int
-    let upperBound: Int
     let score: Double
 }

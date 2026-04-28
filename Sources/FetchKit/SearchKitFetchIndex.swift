@@ -125,7 +125,7 @@ public actor SearchKitFetchIndex: FetchIndex {
                 searchString,
                 in: managedIndex,
                 field: field,
-                limit: query.limit
+                query: query
             ) {
                 let existing = resultsByID[match.document.id]
                 resultsByID[match.document.id] = merged(existing: existing, new: match)
@@ -222,8 +222,8 @@ public actor SearchKitFetchIndex: FetchIndex {
         _ searchString: String,
         in managedIndex: ManagedIndex,
         field: FetchSearchField,
-        limit: Int
-    ) throws -> [FetchSearchResult] {
+        query: FetchSearchQuery
+    ) throws -> [FieldSearchMatch] {
         guard let search = SKSearchCreate(
             managedIndex.index,
             searchString as CFString,
@@ -232,10 +232,10 @@ public actor SearchKitFetchIndex: FetchIndex {
             return []
         }
 
-        var results: [FetchSearchResult] = []
-        let fetchCount = max(limit, 16)
+        var results: [FieldSearchMatch] = []
+        let fetchCount = max(query.limit, 16)
 
-        while results.count < limit {
+        while results.count < query.limit {
             var documentIDs = Array<SKDocumentID>(repeating: 0, count: fetchCount)
             var scores = Array<Float>(repeating: 0, count: fetchCount)
             var foundCount: CFIndex = 0
@@ -254,18 +254,18 @@ public actor SearchKitFetchIndex: FetchIndex {
             }
 
             for offset in 0..<foundCount {
-                guard let result = try makeSearchResult(
+                guard let result = try makeSearchMatch(
                     from: managedIndex,
                     documentID: documentIDs[offset],
                     score: Double(scores[offset]),
                     field: field,
-                    query: searchString
+                    query: query
                 ) else {
                     continue
                 }
 
                 results.append(result)
-                if results.count == limit {
+                if results.count == query.limit {
                     break
                 }
             }
@@ -275,16 +275,16 @@ public actor SearchKitFetchIndex: FetchIndex {
             }
         }
 
-        return results
+        return normalize(matches: results, for: field, kind: query.kind)
     }
 
-    private func makeSearchResult(
+    private func makeSearchMatch(
         from managedIndex: ManagedIndex,
         documentID: SKDocumentID,
         score: Double,
         field: FetchSearchField,
-        query: String
-    ) throws -> FetchSearchResult? {
+        query: FetchSearchQuery
+    ) throws -> FieldSearchMatch? {
         guard let document = SKIndexCopyDocumentForDocumentID(
             managedIndex.index,
             documentID
@@ -300,80 +300,60 @@ public actor SearchKitFetchIndex: FetchIndex {
         }
 
         let snippetSource = field == .title ? (fetchDocument.title ?? fetchDocument.body) : fetchDocument.body
-        return FetchSearchResult(
+        return FieldSearchMatch(
             document: fetchDocument,
             score: score,
-            snippet: makeSnippet(from: snippetSource, query: query)
+            snippet: FetchSearchSupport.buildSnippet(from: snippetSource, query: query),
+            field: field
         )
-    }
-
-    private func makeSnippet(from text: String, query: String) -> FetchSnippet? {
-        let terms = query
-            .replacingOccurrences(of: "\"", with: "")
-            .replacingOccurrences(of: "&", with: " ")
-            .replacingOccurrences(of: "*", with: "")
-            .split(whereSeparator: \.isWhitespace)
-            .map(String.init)
-            .filter { !$0.isEmpty }
-
-        guard let term = terms.first else {
-            return nil
-        }
-
-        let lowercaseText = text.lowercased()
-        guard let range = lowercaseText.range(of: term.lowercased()) else {
-            return FetchSnippet(text: String(text.prefix(80)))
-        }
-
-        let lowerBound = lowercaseText.distance(from: lowercaseText.startIndex, to: range.lowerBound)
-        let upperBound = lowercaseText.distance(from: lowercaseText.startIndex, to: range.upperBound)
-        let snippetRange = snippetBounds(for: text, lowerBound: lowerBound, upperBound: upperBound)
-        let snippetText = String(text[snippetRange])
-        let highlightLowerBound = text.distance(
-            from: snippetRange.lowerBound,
-            to: text.index(text.startIndex, offsetBy: lowerBound)
-        )
-        let highlightUpperBound = text.distance(
-            from: snippetRange.lowerBound,
-            to: text.index(text.startIndex, offsetBy: upperBound)
-        )
-
-        return FetchSnippet(
-            text: snippetText,
-            matchRanges: [
-                FetchMatchRange(
-                    lowerBound: highlightLowerBound,
-                    upperBound: highlightUpperBound
-                ),
-            ]
-        )
-    }
-
-    private func snippetBounds(
-        for text: String,
-        lowerBound: Int,
-        upperBound: Int
-    ) -> Range<String.Index> {
-        let start = text.index(text.startIndex, offsetBy: max(0, lowerBound - 24))
-        let end = text.index(text.startIndex, offsetBy: min(text.count, upperBound + 24))
-        return start..<end
     }
 
     private func merged(
         existing: FetchSearchResult?,
-        new: FetchSearchResult
+        new: FieldSearchMatch
     ) -> FetchSearchResult {
         guard let existing else {
-            return new
+            return new.result
         }
 
-        let score = max(existing.score, new.score)
-        let snippet = existing.snippet ?? new.snippet
+        let score = existing.score + new.score
+        let snippet = preferredSnippet(existing: existing, new: new)
         return FetchSearchResult(
             document: existing.document,
             score: score,
             snippet: snippet
         )
+    }
+
+    private func preferredSnippet(
+        existing: FetchSearchResult,
+        new: FieldSearchMatch
+    ) -> FetchSnippet? {
+        if new.field == .body, new.snippet != nil {
+            return new.snippet
+        }
+
+        return existing.snippet ?? new.snippet
+    }
+
+    private func normalize(
+        matches: [FieldSearchMatch],
+        for field: FetchSearchField,
+        kind: FetchSearchKind
+    ) -> [FieldSearchMatch] {
+        guard let maxScore = matches.map(\.score).max(), maxScore > 0 else {
+            return matches
+        }
+
+        let weight = FetchSearchSupport.fieldWeight(for: field) * FetchSearchSupport.queryKindWeight(for: kind)
+        return matches.map { match in
+            FieldSearchMatch(
+                document: match.document,
+                score: (match.score / maxScore) * weight,
+                snippet: match.snippet,
+                field: match.field
+            )
+        }
     }
 
     private func makeSearchKitDocument(id: FetchDocumentID) -> SKDocument {
@@ -420,6 +400,21 @@ public actor SearchKitFetchIndex: FetchIndex {
         } catch {
             throw IndexError.metadataStoreFailed(error.localizedDescription)
         }
+    }
+}
+
+private struct FieldSearchMatch {
+    let document: FetchDocument
+    let score: Double
+    let snippet: FetchSnippet?
+    let field: FetchSearchField
+
+    var result: FetchSearchResult {
+        FetchSearchResult(
+            document: document,
+            score: score,
+            snippet: snippet
+        )
     }
 }
 

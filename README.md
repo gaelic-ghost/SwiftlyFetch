@@ -138,6 +138,7 @@ Current defaults:
 - markdown thematic breaks act as section-boundary hints, carrying a short lead-in into the next chunk instead of becoming their own retrieval chunks
 - markdown images keep alt text primary in chunk text while recording image references as chunk metadata, and whitelisted HTML blocks currently cover `img` plus `details` / `summary`
 - markdown fallback is selective: ordinary supported prose still chunks normally, but policy-rejected markdown like unsupported raw-HTML-only or reference-definition-only content does not fall back through the plain paragraph chunker
+- conventional search now uses modest field-aware ranking, prefers title hits over body-only hits when both are relevant, and builds query-aware snippets with multi-term highlights instead of a single fixed-width first-term window
 - `makeContext(...)` suppresses redundant same-document chunk text, groups annotated output by document, and skips annotated sections that only have room for labels
 
 Supported today:
@@ -148,6 +149,7 @@ Supported today:
 - use `FetchKitLibrary()` with a default in-memory backend or inject custom `FetchDocumentStore` and `FetchIndex` implementations explicitly
 - use a real Core Data-backed `FetchDocumentStore` in `FetchKit` with the first thin macOS SearchKit index backend
 - persist and retry pending index-sync work through `FetchKitLibrary.pendingIndexSyncs()` and `retryPendingIndexSyncs(...)`
+- return conventional-search results with query-aware snippets and field-aware ranking across title and body matches
 - narrow retrieval with typed metadata filters
 - preserve meaningful markdown structure for retrieval, including heading paths, list semantics, quote-heavy documents, code-heavy documents, short section breaks, images, and a narrow raw-HTML whitelist
 - turn ranked search results into plain or annotated context text for downstream UI or model consumers

@@ -173,18 +173,19 @@ Planned
 ### Scope
 
 - [ ] Refine conventional-search ranking and snippet behavior now that the first SearchKit backend works end to end.
+- [x] Refine conventional-search ranking and snippet behavior now that the first SearchKit backend works end to end.
 - [ ] Decide whether the SearchKit-backed path needs a dedicated CI lane beyond the current local-only verification helper.
 - [ ] Keep the public `FetchKitLibrary` surface polished as the conventional-search side moves from foundation into quality work.
 
 ### Tickets
 
-- [ ] Refine ranking behavior for conventional search so the first SearchKit backend feels less like a raw index adapter and more like a library product.
-- [ ] Improve snippet behavior and result presentation without bloating `FetchCore` into a larger query or rendering DSL.
+- [x] Refine ranking behavior for conventional search so the first SearchKit backend feels less like a raw index adapter and more like a library product.
+- [x] Improve snippet behavior and result presentation without bloating `FetchCore` into a larger query or rendering DSL.
 - [ ] Revisit the local-only SearchKit verification decision once the opt-in macOS lane has stayed stable long enough to justify a dedicated CI experiment.
 
 ### Exit Criteria
 
-- [ ] Conventional-search results feel intentionally ranked and include useful snippet behavior for ordinary app callers.
+- [x] Conventional-search results feel intentionally ranked and include useful snippet behavior for ordinary app callers.
 - [ ] The team has a clear answer on whether the SearchKit lane should stay local-only, move to a dedicated CI path, or remain intentionally manual.
 - [ ] `FetchKitLibrary` still reads like a small Swift-native facade instead of exposing backend detail drift.
 
@@ -233,3 +234,4 @@ Planned
 - Tightened the persistent `FetchKitLibrary` surface around one resolved storage location, with Application Support defaults plus a direct directory override for local callers.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.
 - Audited the Core Data-backed `FetchKit` store after a GitHub-hosted Swift Testing crash, recorded the executor-assumption findings, moved Core Data verification onto XCTest, and switched the durable store over to a private-queue Core Data context with the framework's async `perform` path.
+- Refined conventional-search result quality with modest field-aware ranking plus query-aware multi-term snippets across the in-memory and SearchKit-backed `FetchKit` paths.
