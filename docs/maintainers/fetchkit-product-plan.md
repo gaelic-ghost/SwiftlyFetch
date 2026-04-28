@@ -143,17 +143,24 @@ The same app should eventually be able to use both against the same underlying c
 
 That is the practical value of `SwiftlyFetch` as the umbrella: one local corpus, two complementary search modes.
 
-## Near-Term Milestone Shape
+## Foundation Outcome And Next Steps
 
-The first `FetchKit` milestone should stay docs-first and vocabulary-first.
+The first `FetchKit` foundation milestone is no longer hypothetical.
 
-That should include:
+That pass landed:
 
-- define the package-family boundary clearly in public and maintainer docs
-- design `FetchCore` value types and protocols before adding a backend
-- decide the first Core Data document model shape
-- decide the sync boundary between Core Data records and the Search Kit index
-- only then add the first macOS Search Kit implementation work
+- the package-family boundary in public and maintainer docs
+- the first `FetchCore` value types and protocols
+- the first Core Data document model shape
+- the stored-record to index changeset boundary
+- the first macOS SearchKit-backed implementation path
+
+The next work is refinement, not first architecture:
+
+- improve conventional-search ranking behavior
+- improve snippet behavior and result presentation
+- keep the persistent `FetchKitLibrary` surface polished as real callers exercise it
+- decide later whether the local-only SearchKit verification lane deserves dedicated CI
 
 ## First Core Data Entity Shape
 

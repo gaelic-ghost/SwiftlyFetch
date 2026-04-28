@@ -1,6 +1,6 @@
 # Retrieval Defaults Follow-Up
 
-Use this note to guide any future retrieval-quality pass after the current Natural Language verification, baseline CI work, and the broader retrieval-defaults refinement have landed.
+Use this note to guide any future retrieval-quality pass after the first broad retrieval-defaults and markdown-policy work has landed.
 
 ## Purpose
 
@@ -34,7 +34,7 @@ The package already has a good small baseline:
 - `KnowledgeBase.makeContext(...)` assembles top results into plain or annotated text with grouped document labeling, duplicate suppression, and deterministic budget handling
 - the current behavior is deterministic and easy to reason about
 
-That is enough for the first useful retrieval loop, but it still leaves a few likely v1 pain points unresolved.
+That is enough for the first useful retrieval loop. What remains now is less about obvious missing structure and more about deciding whether real corpora expose retrieval-quality gaps worth another focused pass.
 
 ## Desired Outcome
 
@@ -42,7 +42,7 @@ The desired outcome for this pass is:
 
 - ordinary app code can narrow searches by simple metadata facts without inventing its own wrapper layer
 - context assembly produces predictable, compact output that preserves retrieval value without pretending to synthesize an answer
-- markdown chunking is based on a parsing strategy that is robust enough for real markdown documents instead of growing an accidental homegrown markdown parser over time
+- markdown chunking stays parser-backed and retrieval-first instead of regressing into ad hoc local markdown parsing rules
 - markdown chunk text and chunk metadata both preserve enough local structure to support high-quality retrieval plus downstream search, indexing, and fetching work
 - the public API still feels small and obvious
 
@@ -61,13 +61,11 @@ That means the package still owns:
 
 ### Prefer
 
-Prefer a real markdown parser over extending the current lightweight heading scanner indefinitely.
-
-The first parser candidate to evaluate should be [swift-markdown](https://github.com/swiftlang/swift-markdown), because it gives the package a maintained markdown syntax tree while still letting this repository own the retrieval policy built on top of that tree.
+Keep the parser-backed markdown path built on [swift-markdown](https://github.com/swiftlang/swift-markdown) unless a concrete regression forces a rethink.
 
 ### Avoid
 
-Avoid slowly turning the current chunker into an ad hoc markdown parser.
+Avoid drifting back toward an ad hoc markdown parser.
 
 That means avoiding piecemeal local parsing rules for increasingly many markdown cases such as:
 
@@ -78,15 +76,11 @@ That means avoiding piecemeal local parsing rules for increasingly many markdown
 - thematic breaks
 - link-reference structure
 
-If the package needs to understand more markdown structure, that should normally push the work toward a parser-backed design rather than another round of line-oriented special cases.
+If the package needs to understand more markdown structure, build on the parser-backed section model instead of reintroducing line-oriented special cases.
 
 ### Next Markdown Priorities
 
-The next markdown priorities should be:
-
-- downstream use of the new opt-in link-destination metadata policy, with visible anchor text still primary and raw destinations still secondary by default
-
-The table pass is now in place through row-level chunking and header-aware rendering, and link destinations can now be exposed through opt-in chunk metadata, so the next markdown-policy work should focus on whether additional link-related structure is genuinely useful for downstream indexing or fetch-oriented consumers.
+The next markdown-policy questions should be driven by real caller pressure, not by a desire to enumerate every markdown block kind. The most likely remaining work is deciding whether any additional raw-HTML or image-adjacent structure is genuinely useful for downstream indexing or fetch-oriented consumers beyond the current whitelist and metadata behavior.
 
 ## Metadata Filtering Scope
 
@@ -161,12 +155,11 @@ This package should assemble retrieved evidence, not invent a response.
 
 Examples of changes that fit this note well:
 
-- add a small `not` filter case plus tests
 - improve annotated-context formatting so repeated document identity is easier to scan
 - make plain-context assembly slightly smarter about repeated adjacent chunks from the same document
 - tighten budget handling tests around truncation and separators
-- evaluate `swift-markdown` for parser-backed markdown chunking, then add tests around the chosen structure-aware chunking behavior
-- refine block-quote promotion heuristics or expand chunk metadata when a concrete retrieval or indexing need emerges
+- refine promotion heuristics or expand chunk metadata when a concrete retrieval or indexing need emerges from real documents
+- add one more narrow markdown policy decision only if a real corpus shows the current parser-backed behavior is leaving retrieval value on the floor
 
 ## Changes That Should Trigger Escalation
 
@@ -193,7 +186,7 @@ When this pass starts for real, the order should be:
 This follow-up is done when:
 
 - the package gains one small meaningful retrieval-quality improvement in metadata filtering, context assembly, or both
-- the markdown ingestion path is either parser-backed or has an explicitly defended reason for staying scanner-backed
+- the markdown ingestion path remains parser-backed and retrieval-first
 - the public surface stays retrieval-first and easy to explain
 - tests cover the new behavior deterministically
 - no generation, chat, or orchestration concepts leak into the package surface

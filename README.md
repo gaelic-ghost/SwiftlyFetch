@@ -21,7 +21,7 @@ An Apple-first Swift Package family for local document search and semantic retri
 
 SwiftlyFetch is the umbrella product direction for a small family of Apple-first local search packages. The product goal is simple: hand the system a local corpus and get back a real search engine, with conventional search and semantic retrieval both living under one coherent Swift-native story. In practical terms, SwiftlyFetch is the family for "drop in a corpus, get back local search," with `FetchKit` covering conventional full-document search and `RAGKit` covering semantic retrieval over the same broader corpus model.
 
-Today, the package exposes `RAGCore` and `RAGKit` for shipped semantic retrieval work, plus an early `FetchCore` foundation target for the portable conventional-search vocabulary, durable document-record model, and indexing-changeset boundary that supports the first `FetchKitLibrary` facade in `FetchKit`. That record model now carries first-class typed lifecycle and source fields like `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while leaving the freeform metadata bag string-based. `FetchCore` also distinguishes between the durable stored record, the lean search-facing document view, and the richer index-facing payload used by the sync boundary. `FetchKitLibrary` now supports a default in-memory construction path, and `FetchKit` also includes the first Core Data-backed `FetchDocumentStore` implementation, a store-produced indexing-changeset seam, and a persisted pending-sync queue so index backends can catch back up after failures instead of relying only on in-memory error handling.
+Today, the package exposes shipped semantic retrieval work through `RAGCore` and `RAGKit`, plus the first conventional-search foundation through `FetchCore` and `FetchKit`. `FetchCore` now owns the portable conventional-search vocabulary, the durable document-record model, and the indexing-changeset boundary. That record model carries first-class typed lifecycle and source fields like `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while leaving the freeform metadata bag string-based. `FetchCore` also distinguishes between the durable stored record, the lean search-facing document view, and the richer index-facing payload used by the sync boundary. `FetchKitLibrary` now supports a default in-memory construction path, and `FetchKit` includes a Core Data-backed `FetchDocumentStore`, a persisted pending-sync queue, and the first thin macOS SearchKit-backed index.
 
 The intended family split is:
 
@@ -30,7 +30,7 @@ The intended family split is:
 - `FetchKit` for traditional search, with `FetchKitLibrary` as the first public facade and Core Data plus SearchKit as the intended Apple implementation model
 - `SwiftlyFetch` as the umbrella story tying those sibling package surfaces together over time
 
-That intended split does not change the current package boundary: `RAGKit` still owns semantic retrieval work, not conventional document search. The next family step is to define `FetchCore` and `FetchKit` cleanly enough that the same local corpus can eventually power both traditional search and semantic retrieval without forcing those jobs into one module.
+That intended split does not change the current package boundary: `RAGKit` still owns semantic retrieval work, not conventional document search. The next family step is refinement, not first existence: improve conventional-search ranking and snippets, keep the persistent library surface polished, and continue making it realistic for one local corpus to support both traditional search and semantic retrieval without forcing those jobs into one module.
 
 Platform-wise, the family target is still "macOS and iOS are both first-class," but the first concrete full-text backend is intentionally macOS-first. Apple documents Search Kit as a Mac app indexing and search framework, while Core Spotlight is the more obvious Apple-side indexing/search direction for iOS later. That means the current plan is not to pretend one backend fits both platforms immediately. Instead, `FetchCore` stays portable, `FetchKit` starts with the honest macOS path, and iOS remains a first-class family target through a future sibling backend rather than through fake cross-platform wording.
 
@@ -146,7 +146,7 @@ Supported today:
 - use deterministic hashing embeddings for tests, previews, and fully local examples
 - use Apple Natural Language embeddings for on-device semantic retrieval on supported platforms
 - use `FetchKitLibrary()` with a default in-memory backend or inject custom `FetchDocumentStore` and `FetchIndex` implementations explicitly
-- use a real Core Data-backed `FetchDocumentStore` in `FetchKit` while the first Search Kit index backend is still pending
+- use a real Core Data-backed `FetchDocumentStore` in `FetchKit` with the first thin macOS SearchKit index backend
 - persist and retry pending index-sync work through `FetchKitLibrary.pendingIndexSyncs()` and `retryPendingIndexSyncs(...)`
 - narrow retrieval with typed metadata filters
 - preserve meaningful markdown structure for retrieval, including heading paths, list semantics, quote-heavy documents, code-heavy documents, short section breaks, images, and a narrow raw-HTML whitelist

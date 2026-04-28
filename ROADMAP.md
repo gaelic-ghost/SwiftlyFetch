@@ -11,6 +11,7 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 - [Milestone 1: Retrieval Defaults](#milestone-1-retrieval-defaults)
 - [Milestone 2: Post-v0.1.0 Refinement](#milestone-2-post-v010-refinement)
 - [Milestone 3: FetchKit Foundation](#milestone-3-fetchkit-foundation)
+- [Milestone 4: FetchKit Refinement](#milestone-4-fetchkit-refinement)
 - [Backlog Candidates](#backlog-candidates)
 - [History](#history)
 
@@ -28,8 +29,9 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 
 - Milestone 0: Foundation - Completed
 - Milestone 1: Retrieval Defaults - Completed
-- Milestone 2: Post-v0.1.0 Refinement - Planned
-- Milestone 3: FetchKit Foundation - Planned
+- Milestone 2: Post-v0.1.0 Refinement - Completed
+- Milestone 3: FetchKit Foundation - Completed
+- Milestone 4: FetchKit Refinement - Planned
 
 ## Milestone 0: Foundation
 
@@ -93,11 +95,11 @@ Completed
 
 ### Status
 
-Planned
+Completed
 
 ### Scope
 
-- [ ] Finish the remaining markdown-policy refinement work now that the package has a parser-backed chunking implementation.
+- [x] Finish the remaining markdown-policy refinement work now that the package has a parser-backed chunking implementation.
 - [x] Record the sibling-family architecture clearly: `RAGKit` for semantic retrieval, `FetchKit` for traditional document and full-text search over SearchKit and Core Data, and `SwiftlyFetch` as the umbrella product story.
 - [x] Record that Apple-asset integration coverage remains local-only for now because the GitHub-hosted macOS attempt timed out in the Natural Language verification step.
 
@@ -116,8 +118,8 @@ Planned
 
 ### Exit Criteria
 
-- [ ] The markdown ingestion path is materially more correct and better covered, while still staying retrieval-first and Apple-first.
-- [ ] Markdown chunk metadata and chunk text both carry enough local structure to support high-quality retrieval and downstream fetching or indexing work.
+- [x] The markdown ingestion path is materially more correct and better covered, while still staying retrieval-first and Apple-first.
+- [x] Markdown chunk metadata and chunk text both carry enough local structure to support high-quality retrieval and downstream fetching or indexing work.
 - [x] The package family and responsibility split are documented clearly enough to guide follow-on API decisions.
 - [x] The team has a settled decision on whether asset-enabled integration coverage belongs in optional CI, self-hosted CI, or local-only verification, and why.
 
@@ -125,14 +127,14 @@ Planned
 
 ### Status
 
-Planned
+Completed
 
 ### Scope
 
-- [ ] Define the product boundary and maintainer plan for `FetchCore` and `FetchKit`.
-- [ ] Establish `FetchCore` as the portable vocabulary for conventional document search.
-- [ ] Design a macOS-first `FetchKit` architecture with Core Data as the durable corpus store and SearchKit as the full-text indexing backend.
-- [ ] Keep the overall `SwiftlyFetch` story coherent so one local corpus can eventually support both semantic retrieval and conventional search.
+- [x] Define the product boundary and maintainer plan for `FetchCore` and `FetchKit`.
+- [x] Establish `FetchCore` as the portable vocabulary for conventional document search.
+- [x] Design a macOS-first `FetchKit` architecture with Core Data as the durable corpus store and SearchKit as the full-text indexing backend.
+- [x] Keep the overall `SwiftlyFetch` story coherent so one local corpus can eventually support both semantic retrieval and conventional search.
 
 ### Tickets
 
@@ -155,13 +157,36 @@ Planned
 - [x] Add a small repo-maintenance helper so the local opt-in Search Kit lane is one obvious command instead of a hand-written `xcodebuild` invocation.
 - [x] Tighten the persistent `FetchKitLibrary` construction surface so store and index locations feel polished and Cocoa-style for real app callers.
 - [x] Audit the first Core Data-backed store path on GitHub-hosted macOS, record the Swift Testing executor-assumption failure, move the Core Data verification lane to XCTest, and align the store implementation with a private-queue Core Data context plus async `perform`.
-- [ ] Refine conventional-search ranking and snippet behavior now that the first Search Kit backend is working end to end.
 
 ### Exit Criteria
 
-- [ ] The repo has a clear maintainer plan for `FetchCore` and `FetchKit` before backend code starts landing.
-- [ ] The package-family story explains how `RAGKit`, `FetchKit`, and `SwiftlyFetch` relate without overlapping ownership.
-- [ ] The first `FetchKit` implementation pass has a concrete storage-and-indexing model instead of a vague "traditional search later" placeholder.
+- [x] The repo has a clear maintainer plan for `FetchCore` and `FetchKit` before backend code starts landing.
+- [x] The package-family story explains how `RAGKit`, `FetchKit`, and `SwiftlyFetch` relate without overlapping ownership.
+- [x] The first `FetchKit` implementation pass has a concrete storage-and-indexing model instead of a vague "traditional search later" placeholder.
+
+## Milestone 4: FetchKit Refinement
+
+### Status
+
+Planned
+
+### Scope
+
+- [ ] Refine conventional-search ranking and snippet behavior now that the first SearchKit backend works end to end.
+- [ ] Decide whether the SearchKit-backed path needs a dedicated CI lane beyond the current local-only verification helper.
+- [ ] Keep the public `FetchKitLibrary` surface polished as the conventional-search side moves from foundation into quality work.
+
+### Tickets
+
+- [ ] Refine ranking behavior for conventional search so the first SearchKit backend feels less like a raw index adapter and more like a library product.
+- [ ] Improve snippet behavior and result presentation without bloating `FetchCore` into a larger query or rendering DSL.
+- [ ] Revisit the local-only SearchKit verification decision once the opt-in macOS lane has stayed stable long enough to justify a dedicated CI experiment.
+
+### Exit Criteria
+
+- [ ] Conventional-search results feel intentionally ranked and include useful snippet behavior for ordinary app callers.
+- [ ] The team has a clear answer on whether the SearchKit lane should stay local-only, move to a dedicated CI path, or remain intentionally manual.
+- [ ] `FetchKitLibrary` still reads like a small Swift-native facade instead of exposing backend detail drift.
 
 ## Backlog Candidates
 
