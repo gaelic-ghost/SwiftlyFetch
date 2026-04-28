@@ -137,10 +137,25 @@ Planned
 ### Tickets
 
 - [ ] Add maintainer-facing `FetchKit` architecture guidance that explains the Core Data plus SearchKit model and its relationship to `RAGKit`.
-- [ ] Define the first `FetchCore` model and protocol candidates for document records, queries, search results, snippets, and index synchronization.
-- [ ] Decide the first Core Data document model shape and the sync boundary between stored records and the SearchKit index.
-- [ ] Decide the first public-facing `SwiftlyFetch` product wording for the family once `FetchKit` work begins landing in code.
-- [ ] Decide what iOS-first-class support means at the family level while the first concrete full-text backend remains macOS-first.
+- [x] Define the first `FetchCore` model and protocol candidates for document records, queries, search results, snippets, and index synchronization.
+- [x] Add the first explicit `FetchCore` indexing changeset boundary so later `FetchKit` work can sync Core Data updates into a full-text index without ad hoc write paths.
+- [x] Define the first durable `FetchDocumentRecord` shape so Core Data-backed corpus storage can stay distinct from derived full-text indexing views.
+- [x] Promote the first typed lifecycle and source fields on `FetchDocumentRecord` while keeping freeform metadata string-based.
+- [x] Split the derived search document view from the richer index-facing payload so typed record fields can cross the store-to-index boundary cleanly.
+- [x] Decide the first Core Data document model shape and the sync boundary between stored records and the SearchKit index.
+- [x] Draft the first `FetchKitLibrary` facade with typed add, update, remove, document, and search entry points over the `FetchCore` store/index protocols.
+- [x] Add a first `FetchKitLibrary` configuration/default-construction story so top-level callers do not need to live on raw store/index injection forever.
+- [x] Review the `FetchKitLibrary` method naming and result shapes for a tighter Cocoa-style API, including the document lookup surface and whether write operations should return typed summaries.
+- [x] Decide the first public-facing `SwiftlyFetch` product wording for the family once `FetchKit` work begins landing in code.
+- [x] Decide what iOS-first-class support means at the family level while the first concrete full-text backend remains macOS-first.
+- [x] Add the first Core Data-backed `FetchDocumentStore` implementation in `FetchKit`, keeping the current in-memory index as the search companion for now.
+- [x] Add the first explicit store-write to indexing-changeset seam so future index backends can consume real store mutations instead of facade-reconstructed writes.
+- [x] Add a persisted pending index-sync queue so failed index applies can be retried after the original write call returns or the process restarts.
+- [x] Add the first thin Search Kit-backed `FetchIndex` implementation on macOS, with direct Search Kit tests kept opt-in on a dedicated local macOS lane.
+- [x] Add a small repo-maintenance helper so the local opt-in Search Kit lane is one obvious command instead of a hand-written `xcodebuild` invocation.
+- [x] Tighten the persistent `FetchKitLibrary` construction surface so store and index locations feel polished and Cocoa-style for real app callers.
+- [x] Audit the first Core Data-backed store path on GitHub-hosted macOS, record the Swift Testing executor-assumption failure, move the Core Data verification lane to XCTest, and align the store implementation with a private-queue Core Data context plus async `perform`.
+- [ ] Refine conventional-search ranking and snippet behavior now that the first Search Kit backend is working end to end.
 
 ### Exit Criteria
 
@@ -152,6 +167,7 @@ Planned
 
 - [ ] If parser-backed markdown chunking still leaves retrieval-quality gaps, add retrieval-specific chunking heuristics on top of the chosen markdown parser instead of rebuilding markdown parsing rules locally.
 - [ ] If asset-backed automation becomes important again, evaluate a self-hosted macOS runner with prewarmed assets before retrying a hosted GitHub Actions lane.
+- [ ] Explore dedicated CI options for the opt-in Search Kit lane once the local macOS path has stayed stable long enough to justify automation.
 - [ ] When `FetchKit` moves from docs into code, decide whether the first backend should live behind a SearchKit-specific module seam immediately or only after the first macOS implementation proves the stable `FetchCore` shape.
 
 ## History
@@ -174,4 +190,21 @@ Planned
 - Tightened markdown fallback so policy-rejected markdown does not re-enter retrieval through the plain paragraph chunker.
 - Documented the `RAGKit` / `FetchKit` / `SwiftlyFetch` family split as the intended longer-term package direction.
 - Added a dedicated `FetchKit` product-plan pass and opened the docs-first foundation milestone for the conventional-search side of the family.
+- Added the first `FetchCore` target with portable document-search models, queries, results, snippets, and store/index protocols.
+- Added an explicit `FetchCore` indexing changeset model so future `FetchKit` backends can apply corpus updates through one sync boundary.
+- Added the first durable `FetchDocumentRecord` model so stored corpus state and derived indexable documents are separate in `FetchCore`.
+- Promoted `kind`, `language`, `createdAt`, and `updatedAt` onto `FetchDocumentRecord` as first-class typed fields.
+- Split `FetchDocument`, `FetchIndexDocument`, and `FetchDocumentRecord` into clearer search, index, and durable-record roles.
+- Defined the first `FetchKit` Core Data entity shape and one-way Core Data to Search Kit sync model in maintainer docs.
+- Added the first `FetchKitLibrary` facade so conventional search now has a small typed public API surface in code.
+- Added the first `FetchKitLibrary` configuration and API-polish pass with a default in-memory backend, singular conveniences, and typed batch results.
+- Settled the first public `SwiftlyFetch` family wording and clarified that iOS stays first-class through portable `FetchCore` plus a later backend, while the first full-text backend remains macOS-first.
+- Added the first Core Data-backed `FetchDocumentStore` implementation and tests, while keeping the current in-memory index as the conventional-search companion backend.
+- Added the first store-produced indexing-changeset seam and surfaced pending index updates when the apply step fails.
+- Added a persisted pending index-sync queue plus retry APIs so failed index applies can be acknowledged later instead of being recoverable only from the immediate thrown error.
+- Added the first thin macOS Search Kit index backend and moved the direct Search Kit suite onto XCTest-style opt-in gating.
+- Fixed Search Kit index ownership during teardown so the opt-in Search Kit verification lane is green again under both `swift test` and `xcodebuild test`.
+- Added a dedicated repo-maintenance helper for the local opt-in Search Kit test lane and recorded persistent-surface polish plus ranking/snippet refinement as the next FetchKit work.
+- Tightened the persistent `FetchKitLibrary` surface around one resolved storage location, with Application Support defaults plus a direct directory override for local callers.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.
+- Audited the Core Data-backed `FetchKit` store after a GitHub-hosted Swift Testing crash, recorded the executor-assumption findings, moved Core Data verification onto XCTest, and switched the durable store over to a private-queue Core Data context with the framework's async `perform` path.

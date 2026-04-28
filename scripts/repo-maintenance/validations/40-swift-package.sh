@@ -12,5 +12,8 @@ cd "$REPO_ROOT"
 log "Building Swift package from $REPO_ROOT."
 swift build
 
-log "Testing Swift package from $REPO_ROOT."
-swift test
+log "Testing XCTest targets from $REPO_ROOT."
+swift test --enable-xctest --disable-swift-testing
+
+log "Testing Swift Testing targets from $REPO_ROOT with global test parallelism disabled."
+swift test --disable-xctest --enable-swift-testing --no-parallel
