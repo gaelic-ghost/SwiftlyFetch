@@ -175,16 +175,16 @@ That Natural Language verification is local-only for now. A GitHub-hosted `macos
 The first Search Kit backend is also held out from default validation and kept to an explicit local macOS opt-in lane for now:
 
 ```sh
+scripts/repo-maintenance/run-searchkit-tests.sh
+```
+
+That backend is implemented in code, and the Search Kit suite now lives behind XCTest-style opt-in gating so the default package path stays clean. The helper uses the stable SwiftPM-local path, and the direct lane is green again after fixing Search Kit index ownership during teardown. If you want the explicit Xcode-managed variant for local investigation, this also works:
+
+```sh
 TEST_RUNNER_RUN_SEARCHKIT_TESTS=1 xcodebuild test \
   -scheme SwiftlyFetch-Package \
   -destination 'platform=macOS' \
   -only-testing:FetchKitTests/SearchKitFetchIndexTests
-```
-
-That backend is implemented in code, and the Search Kit suite now lives behind XCTest-style opt-in gating so the default package path stays clean. The direct lane is green again after fixing Search Kit index ownership during teardown. A SwiftPM opt-in path also works for direct shell use:
-
-```sh
-RUN_SEARCHKIT_TESTS=1 swift test --filter SearchKitFetchIndexTests
 ```
 
 ## Repo Structure
