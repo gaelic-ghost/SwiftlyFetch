@@ -86,16 +86,9 @@ final class SearchKitFetchIndexTests: XCTestCase {
             try? FileManager.default.removeItem(at: temporaryDirectory)
         }
 
-        let storeURL = temporaryDirectory.appendingPathComponent("fetch.sqlite")
-        let indexURL = temporaryDirectory.appendingPathComponent("searchkit.index")
         let library = try await FetchKitLibrary.macOSPersistentLibrary(
-            configuration: .init(
-                store: .init(store: .sqlite(storeURL)),
-                index: .init(
-                    storage: .file(indexURL),
-                    indexNamePrefix: "SearchKitFetchIndexTests-\(UUID().uuidString)"
-                )
-            )
+            at: temporaryDirectory,
+            indexNamePrefix: "SearchKitFetchIndexTests-\(UUID().uuidString)"
         )
 
         let pendingSyncs = try await library.pendingIndexSyncs()

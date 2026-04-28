@@ -174,6 +174,37 @@ struct FetchKitLibraryTests {
         #expect(appliedChangesets.count == 1)
         #expect(appliedChangesets[0].upsertedDocuments == [record.indexDocument])
     }
+
+    #if os(macOS)
+    @Test("Persistent FetchKitLibrary configuration resolves a concrete directory layout")
+    func persistentConfigurationResolvesConcreteDirectoryLayout() throws {
+        let directoryURL = URL(fileURLWithPath: "/tmp/SwiftlyFetchTests", isDirectory: true)
+        let configuration = FetchKitLibrary.PersistentConfiguration(
+            location: .directory(directoryURL),
+            storeFileName: "Corpus.sqlite",
+            indexFileName: "Corpus.searchindex",
+            indexNamePrefix: "SearchTests"
+        )
+
+        let paths = try configuration.resolvedPaths()
+
+        #expect(paths.directoryURL == directoryURL)
+        #expect(paths.storeURL == directoryURL.appendingPathComponent("Corpus.sqlite"))
+        #expect(paths.indexURL == directoryURL.appendingPathComponent("Corpus.searchindex"))
+    }
+
+    @Test("Persistent FetchKitLibrary configuration defaults into Application Support")
+    func persistentConfigurationDefaultsIntoApplicationSupport() throws {
+        let configuration = FetchKitLibrary.PersistentConfiguration.default
+
+        let paths = try configuration.resolvedPaths()
+
+        #expect(paths.directoryURL.path.contains("/Library/Application Support/"))
+        #expect(paths.directoryURL.lastPathComponent == "FetchKit")
+        #expect(paths.storeURL.lastPathComponent == "FetchKit.sqlite")
+        #expect(paths.indexURL.lastPathComponent == "FetchKit.searchindex")
+    }
+    #endif
 }
 
 private actor RecordingFetchDocumentStore: FetchDocumentStore {

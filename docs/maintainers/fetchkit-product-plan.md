@@ -81,6 +81,7 @@ Current status:
 - the first thin Search Kit backend now exists behind `FetchIndex`, and its direct tests now sit behind XCTest-style opt-in gating so the default package path can stay clean
 - the Search Kit crash isolation pass found that `SKIndex` teardown needed unretained adoption on create/open, and the direct opt-in Search Kit verification lane is green again under both `swift test` and `xcodebuild test`
 - that Search Kit verification lane is still local-only for now, while the repo defers any dedicated CI story for it
+- the persistent `FetchKitLibrary` construction path is now intentionally caller-shaped around one storage location, with an Application Support default plus a direct directory override, instead of asking app code to assemble separate Core Data and Search Kit URLs itself
 - Search Kit is still intentionally deferred until the durable corpus store and record mapping prove themselves in code
 
 `FetchKit` should be the opinionated implementation layer.

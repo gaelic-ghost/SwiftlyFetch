@@ -153,7 +153,7 @@ Planned
 - [x] Add a persisted pending index-sync queue so failed index applies can be retried after the original write call returns or the process restarts.
 - [x] Add the first thin Search Kit-backed `FetchIndex` implementation on macOS, with direct Search Kit tests kept opt-in on a dedicated local macOS lane.
 - [x] Add a small repo-maintenance helper so the local opt-in Search Kit lane is one obvious command instead of a hand-written `xcodebuild` invocation.
-- [ ] Tighten the persistent `FetchKitLibrary` construction surface so store and index locations feel polished and Cocoa-style for real app callers.
+- [x] Tighten the persistent `FetchKitLibrary` construction surface so store and index locations feel polished and Cocoa-style for real app callers.
 - [ ] Refine conventional-search ranking and snippet behavior now that the first Search Kit backend is working end to end.
 
 ### Exit Criteria
@@ -204,4 +204,5 @@ Planned
 - Added the first thin macOS Search Kit index backend and moved the direct Search Kit suite onto XCTest-style opt-in gating.
 - Fixed Search Kit index ownership during teardown so the opt-in Search Kit verification lane is green again under both `swift test` and `xcodebuild test`.
 - Added a dedicated repo-maintenance helper for the local opt-in Search Kit test lane and recorded persistent-surface polish plus ranking/snippet refinement as the next FetchKit work.
+- Tightened the persistent `FetchKitLibrary` surface around one resolved storage location, with Application Support defaults plus a direct directory override for local callers.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.

@@ -106,6 +106,17 @@ try await library.addDocument(
 let results = try await library.search("apple guide")
 ```
 
+On macOS, the persistent conventional-search surface is now also shaped around one library storage location instead of separate store and index URLs:
+
+```swift
+import FetchKit
+
+let persistentLibrary = try await FetchKitLibrary.macOSPersistentLibrary()
+let previewLibrary = try await FetchKitLibrary.macOSPersistentLibrary(
+    at: URL(fileURLWithPath: "/tmp/SwiftlyFetchPreview", isDirectory: true)
+)
+```
+
 If a caller needs raw markdown link destinations for downstream indexing or fetch-oriented work, opt in at the chunker boundary instead of widening default chunk text:
 
 ```swift
