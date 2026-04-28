@@ -151,6 +151,7 @@ Planned
 - [x] Add the first Core Data-backed `FetchDocumentStore` implementation in `FetchKit`, keeping the current in-memory index as the search companion for now.
 - [x] Add the first explicit store-write to indexing-changeset seam so future index backends can consume real store mutations instead of facade-reconstructed writes.
 - [x] Add a persisted pending index-sync queue so failed index applies can be retried after the original write call returns or the process restarts.
+- [x] Add the first thin Search Kit-backed `FetchIndex` implementation on macOS, with direct Search Kit tests kept opt-in on a dedicated local macOS lane.
 
 ### Exit Criteria
 
@@ -162,6 +163,7 @@ Planned
 
 - [ ] If parser-backed markdown chunking still leaves retrieval-quality gaps, add retrieval-specific chunking heuristics on top of the chosen markdown parser instead of rebuilding markdown parsing rules locally.
 - [ ] If asset-backed automation becomes important again, evaluate a self-hosted macOS runner with prewarmed assets before retrying a hosted GitHub Actions lane.
+- [ ] Explore dedicated CI options for the opt-in Search Kit lane once the local macOS path has stayed stable long enough to justify automation.
 - [ ] When `FetchKit` moves from docs into code, decide whether the first backend should live behind a SearchKit-specific module seam immediately or only after the first macOS implementation proves the stable `FetchCore` shape.
 
 ## History
@@ -196,4 +198,6 @@ Planned
 - Added the first Core Data-backed `FetchDocumentStore` implementation and tests, while keeping the current in-memory index as the conventional-search companion backend.
 - Added the first store-produced indexing-changeset seam and surfaced pending index updates when the apply step fails.
 - Added a persisted pending index-sync queue plus retry APIs so failed index applies can be acknowledged later instead of being recoverable only from the immediate thrown error.
+- Added the first thin macOS Search Kit index backend and moved the direct Search Kit suite onto XCTest-style opt-in gating.
+- Fixed Search Kit index ownership during teardown so the opt-in Search Kit verification lane is green again under both `swift test` and `xcodebuild test`.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.

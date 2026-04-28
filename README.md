@@ -172,6 +172,21 @@ RUN_NL_INTEGRATION_TESTS=1 swift test --filter NaturalLanguageEmbedderIntegratio
 
 That Natural Language verification is local-only for now. A GitHub-hosted `macos-15` lane was able to start the asset-backed test path, but the hosted run sat in the Natural Language integration step until the job timeout, so the default GitHub Actions workflow stays asset-independent.
 
+The first Search Kit backend is also held out from default validation and kept to an explicit local macOS opt-in lane for now:
+
+```sh
+TEST_RUNNER_RUN_SEARCHKIT_TESTS=1 xcodebuild test \
+  -scheme SwiftlyFetch-Package \
+  -destination 'platform=macOS' \
+  -only-testing:FetchKitTests/SearchKitFetchIndexTests
+```
+
+That backend is implemented in code, and the Search Kit suite now lives behind XCTest-style opt-in gating so the default package path stays clean. The direct lane is green again after fixing Search Kit index ownership during teardown. A SwiftPM opt-in path also works for direct shell use:
+
+```sh
+RUN_SEARCHKIT_TESTS=1 swift test --filter SearchKitFetchIndexTests
+```
+
 ## Repo Structure
 
 ```text
