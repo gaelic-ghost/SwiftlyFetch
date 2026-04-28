@@ -118,6 +118,49 @@ struct FetchKitLibraryTests {
         #expect(results[0].snippet?.text.contains("bright") == true)
     }
 
+    @Test("FetchKitLibrary prefers title matches over body-only matches")
+    func fetchKitLibraryPrefersTitleMatches() async throws {
+        let library = FetchKitLibrary()
+
+        try await library.addDocuments([
+            FetchDocumentRecord(
+                id: "doc-title",
+                title: "Apple Guide",
+                body: "General orchard notes."
+            ),
+            FetchDocumentRecord(
+                id: "doc-body",
+                title: "Orchard Notes",
+                body: "This document talks about apple harvest timing."
+            ),
+        ])
+
+        let results = try await library.search("apple", fields: [.title, .body], limit: 5)
+
+        #expect(results.count == 2)
+        #expect(results.map(\.document.id) == ["doc-title", "doc-body"])
+    }
+
+    @Test("FetchKitLibrary snippets highlight multiple query terms")
+    func fetchKitLibraryHighlightsMultipleQueryTerms() async throws {
+        let library = FetchKitLibrary()
+
+        try await library.addDocument(
+            FetchDocumentRecord(
+                id: "doc-apple",
+                title: "Apple Guide",
+                body: "Apples stay bright and crisp through the fall harvest season."
+            )
+        )
+
+        let results = try await library.search("bright crisp", fields: [.body], limit: 1)
+        let snippet = try #require(results.first?.snippet)
+
+        #expect(snippet.text.localizedCaseInsensitiveContains("bright"))
+        #expect(snippet.text.localizedCaseInsensitiveContains("crisp"))
+        #expect(snippet.matchRanges.count >= 2)
+    }
+
     @Test("FetchKitLibrary surfaces pending indexing changes when the index apply step fails")
     func fetchKitLibrarySurfacesPendingIndexingChanges() async throws {
         let store = RecordingFetchDocumentStore()

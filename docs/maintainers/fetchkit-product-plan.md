@@ -82,6 +82,7 @@ Current status:
 - the Search Kit crash isolation pass found that `SKIndex` teardown needed unretained adoption on create/open, and the direct opt-in Search Kit verification lane is green again under both `swift test` and `xcodebuild test`
 - that Search Kit verification lane is still local-only for now, while the repo defers any dedicated CI story for it
 - the persistent `FetchKitLibrary` construction path is now intentionally caller-shaped around one storage location, with an Application Support default plus a direct directory override, instead of asking app code to assemble separate Core Data and Search Kit URLs itself
+- the first refinement pass on conventional-search result quality is now in place: SearchKit scores are normalized per field, title hits get a modest weight bump, cross-field matches accumulate instead of collapsing to the single best field, and snippets now highlight multiple query terms instead of showing only the first term in a fixed-width window
 - the CI investigation on GitHub-hosted macOS found that the Core Data-backed store path could abort under Swift Testing with `Incorrect actor executor assumption`, even after global test parallelism was disabled
 - that investigation surfaced two store-shape fixes worth keeping regardless of the runner: the durable Core Data store should use a private-queue background context instead of `viewContext`, and it should use Core Data's async `perform` API directly instead of manually bridging context work through checked continuations
 - the Core Data-backed store coverage now lives on XCTest rather than Swift Testing so the package keeps the newer test surface where it is stable while reserving the older runner for framework-heavy Core Data verification
@@ -157,10 +158,9 @@ That pass landed:
 
 The next work is refinement, not first architecture:
 
-- improve conventional-search ranking behavior
-- improve snippet behavior and result presentation
 - keep the persistent `FetchKitLibrary` surface polished as real callers exercise it
 - decide later whether the local-only SearchKit verification lane deserves dedicated CI
+- decide whether the current ranking and snippet heuristics are already enough for ordinary callers or whether real corpora show a need for another refinement pass
 
 ## First Core Data Entity Shape
 
