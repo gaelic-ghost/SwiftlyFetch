@@ -263,4 +263,5 @@ Planned
 - Refined conventional-search result quality with modest field-aware ranking plus query-aware multi-term snippets across the in-memory and SearchKit-backed `FetchKit` paths.
 - Polished conventional-search result presentation with stronger phrase weighting and visible snippet truncation cues, then shipped that refinement as `v0.1.2`.
 - Promoted the SearchKit-backed test suite from a local opt-in lane into normal XCTest validation and the default GitHub CI path once the lane proved fast and stable enough.
+- Promoted the Natural Language integration lane into default local maintainer validation, but kept it out of GitHub-hosted CI after another hosted experiment remained stuck in the asset-backed step for minutes while the local path completed in seconds.
 - Opened the next roadmap phase around SearchKit/Natural Language verification strategy, iOS conventional-search backend direction, and another caller-driven `FetchKitLibrary` polish pass if real usage shows it is needed.

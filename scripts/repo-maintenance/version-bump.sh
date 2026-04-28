@@ -56,7 +56,7 @@ cat >"$release_notes_path" <<EOF
 
 - \`RAGCore\` and \`RAGKit\` continue to provide the shipped semantic retrieval surface from \`v0.1.1\`.
 - \`FetchCore\` and \`FetchKit\` still expose the same conventional-search foundation, but \`FetchKitLibrary\` search results now rank title and phrase matches more intentionally and return richer snippets by default.
-- Real Natural Language integration coverage remains opt-in and requires \`RUN_NL_INTEGRATION_TESTS=1\`.
+- Real Natural Language integration coverage now runs in local maintainer validation by default, while GitHub-hosted CI still skips the asset-backed lane.
 - The Search Kit verification path now runs in normal validation, with \`scripts/repo-maintenance/run-searchkit-tests.sh\` kept as a focused local helper.
 
 ## Verification Performed
