@@ -5,14 +5,6 @@ import FetchCore
 @testable import FetchKit
 
 final class SearchKitFetchIndexTests: XCTestCase {
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        try XCTSkipUnless(
-            ProcessInfo.processInfo.environment["RUN_SEARCHKIT_TESTS"] == "1",
-            "Enable Search Kit tests with RUN_SEARCHKIT_TESTS=1."
-        )
-    }
-
     func testSearchKitFetchIndexIndexesAndSearchesText() async throws {
         let index = try SearchKitFetchIndex(
             configuration: .init(

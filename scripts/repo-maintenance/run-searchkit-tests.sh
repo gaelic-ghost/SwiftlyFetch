@@ -12,7 +12,7 @@ DESTINATION="${SEARCHKIT_TEST_DESTINATION:-platform=macOS}"
 SCHEME="${SEARCHKIT_TEST_SCHEME:-SwiftlyFetch-Package}"
 TEST_TARGET="${SEARCHKIT_TEST_ONLY:-SearchKitFetchIndexTests}"
 
-log "Running the local opt-in Search Kit test lane for $TEST_TARGET from $REPO_ROOT."
+log "Running the focused Search Kit test lane for $TEST_TARGET from $REPO_ROOT."
 
 cd "$REPO_ROOT"
-RUN_SEARCHKIT_TESTS=1 swift test --filter "$TEST_TARGET"
+swift test --filter "$TEST_TARGET"

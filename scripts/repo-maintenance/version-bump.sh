@@ -45,7 +45,7 @@ cat >"$release_notes_path" <<EOF
 
 - refined conventional-search ranking so title hits get a modest boost, Search Kit scores normalize per field, and cross-field matches accumulate more intentionally
 - replaced the old single-term snippet behavior with shared query-aware snippets that can highlight multiple query terms and show visible truncation markers when context is cropped
-- added stronger default-path and opt-in Search Kit coverage for ranking preference, phrase behavior, and snippet presentation
+- added stronger default-path and Search Kit coverage for ranking preference, phrase behavior, and snippet presentation
 - documented the new conventional-search refinement state in the README, roadmap, and maintainer notes
 
 ## Breaking Changes
@@ -56,8 +56,8 @@ cat >"$release_notes_path" <<EOF
 
 - \`RAGCore\` and \`RAGKit\` continue to provide the shipped semantic retrieval surface from \`v0.1.1\`.
 - \`FetchCore\` and \`FetchKit\` still expose the same conventional-search foundation, but \`FetchKitLibrary\` search results now rank title and phrase matches more intentionally and return richer snippets by default.
-- Real Natural Language integration coverage remains opt-in and requires \`RUN_NL_INTEGRATION_TESTS=1\`.
-- The Search Kit verification lane remains local-only for now through \`scripts/repo-maintenance/run-searchkit-tests.sh\`.
+- Real Natural Language integration coverage now runs in local maintainer validation by default, while GitHub-hosted CI still skips the asset-backed lane.
+- The Search Kit verification path now runs in normal validation, with \`scripts/repo-maintenance/run-searchkit-tests.sh\` kept as a focused local helper.
 
 ## Verification Performed
 
