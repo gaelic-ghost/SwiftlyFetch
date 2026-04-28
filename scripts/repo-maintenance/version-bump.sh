@@ -43,20 +43,19 @@ cat >"$release_notes_path" <<EOF
 
 ## What Changed
 
-- added the first conventional-search foundation through \`FetchCore\`, \`FetchKit\`, and the new \`FetchKitLibrary\` facade
-- shipped the first Core Data-backed durable corpus store, persisted pending index-sync queue, and thin macOS Search Kit backend
-- added the polished persistent-library construction surface plus the local Search Kit helper lane for opt-in macOS verification
-- documented the \`SwiftlyFetch\` / \`FetchKit\` / \`RAGKit\` package-family split more clearly in public and maintainer docs
-- stabilized hosted CI by moving the Core Data-backed verification path to XCTest and aligning the durable store with a private-queue Core Data context
+- refined conventional-search ranking so title hits get a modest boost, Search Kit scores normalize per field, and cross-field matches accumulate more intentionally
+- replaced the old single-term snippet behavior with shared query-aware snippets that can highlight multiple query terms and show visible truncation markers when context is cropped
+- added stronger default-path and opt-in Search Kit coverage for ranking preference, phrase behavior, and snippet presentation
+- documented the new conventional-search refinement state in the README, roadmap, and maintainer notes
 
 ## Breaking Changes
 
-- None. This is a backward-compatible patch release on top of \`v0.1.0\`.
+- None. This is a backward-compatible patch release on top of \`v0.1.1\`.
 
 ## Migration Or Upgrade Notes
 
-- \`RAGCore\` and \`RAGKit\` continue to provide the shipped semantic retrieval surface from \`v0.1.0\`.
-- \`FetchCore\` and \`FetchKit\` now expose the first conventional-search foundation, including \`FetchKitLibrary\` for in-memory and macOS-persistent library construction.
+- \`RAGCore\` and \`RAGKit\` continue to provide the shipped semantic retrieval surface from \`v0.1.1\`.
+- \`FetchCore\` and \`FetchKit\` still expose the same conventional-search foundation, but \`FetchKitLibrary\` search results now rank title and phrase matches more intentionally and return richer snippets by default.
 - Real Natural Language integration coverage remains opt-in and requires \`RUN_NL_INTEGRATION_TESTS=1\`.
 - The Search Kit verification lane remains local-only for now through \`scripts/repo-maintenance/run-searchkit-tests.sh\`.
 
