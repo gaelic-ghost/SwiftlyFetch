@@ -21,7 +21,7 @@ An Apple-first Swift Package family for local document search and semantic retri
 
 SwiftlyFetch is the umbrella product direction for a small family of Apple-first local search packages. The product goal is simple: hand the system a local corpus and get back a real search engine, with conventional search and semantic retrieval both living under one coherent Swift-native story. In practical terms, SwiftlyFetch is the family for "drop in a corpus, get back local search," with `FetchKit` covering conventional full-document search and `RAGKit` covering semantic retrieval over the same broader corpus model.
 
-Today, the package exposes shipped semantic retrieval work through `RAGCore` and `RAGKit`, plus the first conventional-search foundation through `FetchCore` and `FetchKit`. `FetchCore` now owns the portable conventional-search vocabulary, the durable document-record model, and the indexing-changeset boundary. That record model carries first-class typed lifecycle and source fields like `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while leaving the freeform metadata bag string-based. `FetchCore` also distinguishes between the durable stored record, the lean search-facing document view, and the richer index-facing payload used by the sync boundary. `FetchKitLibrary` now supports a default in-memory construction path, and `FetchKit` includes a Core Data-backed `FetchDocumentStore`, a persisted pending-sync queue, and the first thin macOS SearchKit-backed index.
+Today, the package exposes shipped semantic retrieval work through `RAGCore` and `RAGKit`, plus the first conventional-search foundation through `FetchCore` and `FetchKit`. `FetchCore` now owns the portable conventional-search vocabulary, the durable document-record model, and the indexing-changeset boundary. That record model carries first-class typed lifecycle and source fields like `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while leaving the freeform metadata bag string-based. `FetchCore` also distinguishes between the durable stored record, the lean search-facing document view, and the richer index-facing payload used by the sync boundary. `FetchKitLibrary` now supports a default in-memory construction path, and `FetchKit` includes a Core Data-backed `FetchDocumentStore`, a persisted pending-sync queue, and the first thin macOS SearchKit-backed index. Conventional-search results also carry field evidence through `matchedFields` and `snippetField`, so UI code can tell whether a result matched title text, body text, or both.
 
 The intended family split is:
 
@@ -103,7 +103,12 @@ try await library.addDocument(
 )
 
 let results = try await library.search("apple guide")
+let firstResult = results.first
+let matchedFields = firstResult?.matchedFields
+let snippetField = firstResult?.snippetField
 ```
+
+`matchedFields` identifies every indexed field that contributed to a search result. `snippetField` identifies the field used to build the returned snippet. Title-only hits intentionally keep the title as the snippet source, so simple result lists still have an immediate explanation for why the result appeared, while richer UIs can render title evidence differently from body evidence.
 
 On macOS, the persistent conventional-search surface is now also shaped around one library storage location instead of separate store and index URLs:
 
@@ -139,6 +144,7 @@ Current defaults:
 - markdown images keep alt text primary in chunk text while recording image references as chunk metadata, and whitelisted HTML blocks currently cover `img` plus `details` / `summary`
 - markdown fallback is selective: ordinary supported prose still chunks normally, but policy-rejected markdown like unsupported raw-HTML-only or reference-definition-only content does not fall back through the plain paragraph chunker
 - conventional search now uses modest field-aware ranking, prefers title hits over body-only hits when both are relevant, and builds query-aware snippets with multi-term highlights instead of a single fixed-width first-term window
+- conventional-search results report `matchedFields` and `snippetField`, keeping title-only snippets visible while letting consumers distinguish title evidence from body evidence
 - `makeContext(...)` suppresses redundant same-document chunk text, groups annotated output by document, and skips annotated sections that only have room for labels
 
 Supported today:
@@ -149,7 +155,7 @@ Supported today:
 - use `FetchKitLibrary()` with a default in-memory backend or inject custom `FetchDocumentStore` and `FetchIndex` implementations explicitly
 - use a real Core Data-backed `FetchDocumentStore` in `FetchKit` with the first thin macOS SearchKit index backend
 - persist and retry pending index-sync work through `FetchKitLibrary.pendingIndexSyncs()` and `retryPendingIndexSyncs(...)`
-- return conventional-search results with query-aware snippets and field-aware ranking across title and body matches
+- return conventional-search results with query-aware snippets, field-aware ranking, matched-field metadata, and snippet-source metadata across title and body matches
 - narrow retrieval with typed metadata filters
 - preserve meaningful markdown structure for retrieval, including heading paths, list semantics, quote-heavy documents, code-heavy documents, short section breaks, images, and a narrow raw-HTML whitelist
 - turn ranked search results into plain or annotated context text for downstream UI or model consumers
