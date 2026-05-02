@@ -202,6 +202,41 @@ final class SearchKitFetchIndexTests: XCTestCase {
         XCTAssertTrue(results.isEmpty)
     }
 
+    func testSearchKitFetchIndexMatchesFixtureCorpusBodyAndTitleEvidence() async throws {
+        let index = try SearchKitFetchIndex(
+            configuration: .init(
+                storage: .inMemory,
+                indexNamePrefix: "SearchKitFetchIndexTests-\(UUID().uuidString)"
+            )
+        )
+
+        try await index.apply(
+            FetchIndexingChangeset(
+                GutenbergMiniCorpus.records.map { .upsert($0.indexDocument) }
+            )
+        )
+
+        let bodyResults = try await index.search(
+            FetchSearchQuery("storage food seeds", kind: .allTerms, fields: [.title, .body], limit: 3)
+        )
+        let titleResults = try await index.search(
+            FetchSearchQuery("rocket test pilot", kind: .allTerms, fields: [.title, .body], limit: 3)
+        )
+
+        XCTAssertEqual(bodyResults.first?.document.id, "gutenberg-78430-chapter-1")
+        XCTAssertEqual(bodyResults.first?.matchedFields, [.body])
+        XCTAssertEqual(bodyResults.first?.snippetField, .body)
+        XCTAssertEqual(bodyResults.first?.snippet?.text.localizedCaseInsensitiveContains("storage"), true)
+        XCTAssertEqual(bodyResults.first?.snippet?.text.localizedCaseInsensitiveContains("food"), true)
+        XCTAssertEqual(bodyResults.first?.snippet?.text.localizedCaseInsensitiveContains("seeds"), true)
+
+        XCTAssertEqual(titleResults.first?.document.id, "gutenberg-78431-book")
+        XCTAssertEqual(titleResults.first?.matchedFields, [.title])
+        XCTAssertEqual(titleResults.first?.snippetField, .title)
+        XCTAssertEqual(titleResults.first?.snippet?.text.localizedCaseInsensitiveContains("rocket test pilot"), true)
+        XCTAssertEqual(titleResults.first?.snippet?.text.localizedCaseInsensitiveContains("Transcriber's Note"), false)
+    }
+
     func testFetchKitLibraryBuildsPersistentPair() async throws {
         let temporaryDirectory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
