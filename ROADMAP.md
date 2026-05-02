@@ -182,8 +182,9 @@ In Progress
 
 - [x] Refine ranking behavior for conventional search so the first SearchKit backend feels less like a raw index adapter and more like a library product.
 - [x] Improve snippet behavior and result presentation without bloating `FetchCore` into a larger query or rendering DSL.
-- [ ] Audit real-corpus result quality now that field-aware ranking, phrase weighting, truncation cues, and multi-term snippets are in place.
-- [ ] Decide whether title-only hits should suppress body snippets or use a different presentation policy in the public facade.
+- [x] Add the first checked-in fixture corpus and cover title/body result-evidence behavior across the default in-memory path and the macOS SearchKit-backed path.
+- [x] Decide that title-only hits should keep title snippets while exposing `matchedFields` and `snippetField` so consumers can distinguish title evidence from body evidence.
+- [ ] Audit broader real-corpus result quality now that field-aware ranking, phrase weighting, truncation cues, multi-term snippets, and field-evidence metadata are in place.
 - [ ] Keep the persistent `FetchKitLibrary` construction and search API surface under review as real callers exercise the current design.
 - [ ] Explore an opt-in extended snippet surface that can use idle time to precompute short document summaries for larger records, with Apple's [`FoundationModels`](https://developer.apple.com/documentation/foundationmodels) or another local summarization path as the first candidate instead of making foreground full-text search wait on summarization.
 

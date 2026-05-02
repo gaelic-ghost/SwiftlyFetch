@@ -83,6 +83,8 @@ Current status:
 - because the Search Kit tests now finish quickly and pass reliably, the repo now runs them in ordinary local validation and the default GitHub macOS CI lane instead of keeping them behind a local-only opt-in gate
 - the persistent `FetchKitLibrary` construction path is now intentionally caller-shaped around one storage location, with an Application Support default plus a direct directory override, instead of asking app code to assemble separate Core Data and Search Kit URLs itself
 - the first refinement pass on conventional-search result quality is now in place: SearchKit scores are normalized per field, title hits get a modest weight bump, cross-field matches accumulate instead of collapsing to the single best field, and snippets now highlight multiple query terms instead of showing only the first term in a fixed-width window
+- title-only hits intentionally keep a title snippet, and `FetchSearchResult` now reports `matchedFields` plus `snippetField` so consumers can distinguish title evidence from body evidence without losing the simple "why did this result appear?" explanation
+- the first checked-in fixture corpus now covers both the default in-memory index path and the macOS SearchKit-backed path, using a tiny attributed Project Gutenberg sample from Hugging Face instead of making CI download a live dataset
 - the CI investigation on GitHub-hosted macOS found that the Core Data-backed store path could abort under Swift Testing with `Incorrect actor executor assumption`, even after global test parallelism was disabled
 - that investigation surfaced two store-shape fixes worth keeping regardless of the runner: the durable Core Data store should use a private-queue background context instead of `viewContext`, and it should use Core Data's async `perform` API directly instead of manually bridging context work through checked continuations
 - the Core Data-backed store coverage now lives on XCTest rather than Swift Testing so the package keeps the newer test surface where it is stable while reserving the older runner for framework-heavy Core Data verification
@@ -160,7 +162,8 @@ The next work is refinement, not first architecture:
 
 - keep the persistent `FetchKitLibrary` surface polished as real callers exercise it
 - keep the SearchKit-backed path inside ordinary validation unless a future framework regression forces it back out
-- decide whether the current ranking and snippet heuristics are already enough for ordinary callers or whether real corpora show a need for another refinement pass
+- use broader fixture corpora or real app corpora to decide whether the current ranking, snippet, and result-evidence heuristics are already enough for ordinary callers
+- explore opt-in extended snippets later as background summary metadata for larger documents, not as work that foreground full-text search has to perform before returning results
 
 ## First Core Data Entity Shape
 

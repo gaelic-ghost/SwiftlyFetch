@@ -4,7 +4,7 @@
 
 This note records the first checked-in fixture corpus used for `FetchKit` conventional-search quality tests.
 
-The job of this fixture is deliberately narrow: give the default `FetchKitLibrary` tests enough title/body variety to characterize ranking and snippet behavior without making local or hosted CI download a dataset.
+The job of this fixture is deliberately narrow: give the default `FetchKitLibrary` and macOS SearchKit tests enough title/body variety to characterize ranking, snippet, and result-evidence behavior without making local or hosted CI download a dataset.
 
 ## Current Fixture Source
 
@@ -19,6 +19,17 @@ Why this source fits the first pass:
 - the corpus can be inspected through the Hugging Face Dataset Viewer APIs without adding a Swift dependency
 
 The fixture records live in `Tests/FetchKitTests/Fixtures/GutenbergMiniCorpus.swift`. Each record carries dataset, config, split, row, and Gutenberg ID metadata so the sample remains attributable and replaceable.
+
+## Result Evidence Policy
+
+The first fixture pass settled the title-only snippet policy for the current public surface:
+
+- keep title snippets for title-only hits
+- report all contributing fields through `FetchSearchResult.matchedFields`
+- report the field used for the returned snippet through `FetchSearchResult.snippetField`
+- cover the same title/body expectations in both the default in-memory index path and the macOS SearchKit-backed path
+
+In practical terms, simple result lists can keep rendering a snippet for every explained hit, while richer consumers can avoid treating a title snippet as body evidence.
 
 ## Hugging Face Dependency Boundary
 
@@ -42,8 +53,8 @@ Hugging Face documents dataset parquet discovery through the Dataset Viewer serv
 
 ## Next Use
 
-Use this fixture to settle the remaining Milestone 4 questions:
+Use this fixture to keep the settled Milestone 4 result-evidence behavior honest while broader quality work continues:
 
 - whether the current ranking and snippet heuristics are enough for ordinary app callers
-- whether title-only hits should keep using title snippets, suppress snippets, or grow a different presentation policy in the public facade
-- whether the first fixture corpus should also cover the macOS SearchKit-backed path directly, or whether the existing SearchKit tests plus the default-library corpus tests are enough for now
+- whether a larger fixture corpus exposes ranking or snippet gaps that the mini corpus cannot show
+- whether future extended snippets should be backed by precomputed summaries for larger documents rather than by foreground search-time work
