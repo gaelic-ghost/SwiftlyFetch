@@ -78,9 +78,9 @@ Current status:
 - `FetchKit` now has its first Core Data-backed `FetchDocumentStore` implementation, built from a programmatic Core Data model that matches the current durable record shape
 - the store side now produces explicit `FetchIndexingChangeset` values through `FetchStoreMutationResult`, so the index-sync boundary is derived from real store writes instead of being reconstructed ad hoc in the facade
 - pending index-sync work is now persisted by the store itself and can be retried later through the `FetchKitLibrary` facade, so a failed index apply no longer relies only on an in-memory thrown error for recovery
-- the first thin Search Kit backend now exists behind `FetchIndex`, and its direct tests now sit behind XCTest-style opt-in gating so the default package path can stay clean
-- the Search Kit crash isolation pass found that `SKIndex` teardown needed unretained adoption on create/open, and the direct opt-in Search Kit verification lane is green again under both `swift test` and `xcodebuild test`
-- that Search Kit verification lane is still local-only for now, while the repo defers any dedicated CI story for it
+- the first thin Search Kit backend now exists behind `FetchIndex`, and its direct tests now run through the normal XCTest validation path while the focused helper script remains available for faster local iteration
+- the Search Kit crash isolation pass found that `SKIndex` teardown needed unretained adoption on create/open, and the Search Kit verification lane is now green under both targeted local runs and the normal XCTest validation path
+- because the Search Kit tests now finish quickly and pass reliably, the repo now runs them in ordinary local validation and the default GitHub macOS CI lane instead of keeping them behind a local-only opt-in gate
 - the persistent `FetchKitLibrary` construction path is now intentionally caller-shaped around one storage location, with an Application Support default plus a direct directory override, instead of asking app code to assemble separate Core Data and Search Kit URLs itself
 - the first refinement pass on conventional-search result quality is now in place: SearchKit scores are normalized per field, title hits get a modest weight bump, cross-field matches accumulate instead of collapsing to the single best field, and snippets now highlight multiple query terms instead of showing only the first term in a fixed-width window
 - the CI investigation on GitHub-hosted macOS found that the Core Data-backed store path could abort under Swift Testing with `Incorrect actor executor assumption`, even after global test parallelism was disabled
@@ -159,7 +159,7 @@ That pass landed:
 The next work is refinement, not first architecture:
 
 - keep the persistent `FetchKitLibrary` surface polished as real callers exercise it
-- decide later whether the local-only SearchKit verification lane deserves dedicated CI
+- keep the SearchKit-backed path inside ordinary validation unless a future framework regression forces it back out
 - decide whether the current ranking and snippet heuristics are already enough for ordinary callers or whether real corpora show a need for another refinement pass
 
 ## First Core Data Entity Shape

@@ -167,7 +167,7 @@ Good current fits:
 Current constraints:
 
 - the SearchKit backend is macOS-first
-- Natural Language asset-backed verification stays opt-in and local-only
+- Natural Language asset-backed verification runs in local maintainer validation by default, but stays out of the default GitHub-hosted CI lane because hosted macOS still stalls in the asset-backed step
 - the package family direction is broader than the currently shipped polished surface, especially on the `FetchKit` side
 
 If you want to contribute to the package itself, use [CONTRIBUTING.md](./CONTRIBUTING.md). Maintainer planning and architecture notes live under [docs/maintainers/](./docs/maintainers/).

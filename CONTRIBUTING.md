@@ -44,8 +44,7 @@ This repository does not require secrets or `.env` files for ordinary package de
 
 ```bash
 RUN_NL_INTEGRATION_TESTS=1
-RUN_SEARCHKIT_TESTS=1
-TEST_RUNNER_RUN_SEARCHKIT_TESTS=1
+RUN_NL_INTEGRATION_TESTS_IN_GITHUB_CI=1
 ```
 
 ### Runtime Behavior
@@ -64,10 +63,21 @@ For the local SearchKit-only verification lane on macOS, use:
 scripts/repo-maintenance/run-searchkit-tests.sh
 ```
 
-If you are touching the opt-in Natural Language asset path, use:
+`scripts/repo-maintenance/validate-all.sh` now includes both framework-backed local verification lanes by default on macOS:
+
+- the SearchKit XCTest lane runs in ordinary local validation and in the default GitHub macOS CI job
+- the Natural Language asset-backed integration lane also runs in ordinary local validation, but it is intentionally skipped in the default GitHub-hosted CI job because hosted macOS still stalls in that asset-backed step
+
+For a focused Natural Language integration pass, use:
 
 ```bash
 RUN_NL_INTEGRATION_TESTS=1 swift test --filter NaturalLanguageEmbedderIntegrationTests
+```
+
+Only use this hosted-CI override when deliberately re-running the GitHub experiment path:
+
+```bash
+RUN_NL_INTEGRATION_TESTS_IN_GITHUB_CI=1
 ```
 
 ## Development Expectations
@@ -91,7 +101,7 @@ scripts/repo-maintenance/validate-all.sh
 scripts/repo-maintenance/run-searchkit-tests.sh
 ```
 
-Not every change needs every optional lane, but package, maintainer, and release-affecting work should leave the default validation path green before review.
+Not every change needs every focused helper lane, but package, maintainer, and release-affecting work should leave the default validation path green before review. If you are changing Natural Language embedding behavior, asset handling, or the NatLang harness itself, run the focused Natural Language integration command explicitly in addition to the normal repo-maintenance path.
 
 ## Pull Request Expectations
 
