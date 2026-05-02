@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This note records the first checked-in fixture corpus used for `FetchKit` conventional-search quality tests.
+This note records the checked-in fixture corpus used for `FetchKit` conventional-search quality tests.
 
 The job of this fixture is deliberately narrow: give the default `FetchKitLibrary` and macOS SearchKit tests enough title/body variety to characterize ranking, snippet, and result-evidence behavior without making local or hosted CI download a dataset.
 
 ## Current Fixture Source
 
-The first mini corpus is derived from the [`zkeown/gutenberg-corpus`](https://huggingface.co/datasets/zkeown/gutenberg-corpus) dataset on Hugging Face.
+The first source-derived mini corpus is derived from the [`zkeown/gutenberg-corpus`](https://huggingface.co/datasets/zkeown/gutenberg-corpus) dataset on Hugging Face.
 
 Why this source fits the first pass:
 
@@ -20,6 +20,11 @@ Why this source fits the first pass:
 
 The fixture records live in `Tests/FetchKitTests/Fixtures/GutenbergMiniCorpus.swift`. Each source-derived record carries dataset, config, split, row, and Gutenberg ID metadata so the sample remains attributable and replaceable. The fixture also includes small synthetic near-miss and longer-body records derived from the same topic shape. Those synthetic records exist to stress ranking and snippet selection without expanding the checked-in corpus into a large text dump.
 
+Current synthetic records:
+
+- `fixture-botany-near-miss` scatters the query terms from the seed-storage chapter across an unrelated classroom-supply note. It protects the user-facing expectation that a focused passage about storage of food in seeds ranks ahead of a document that merely mentions storage, food, and seeds separately.
+- `fixture-long-frontier-body` places the useful passage in the middle of a longer body. It protects the expectation that snippet selection moves toward the relevant passage and keeps visible truncation markers when the returned snippet is cropped.
+
 ## Result Evidence Policy
 
 The first fixture pass settled the title-only snippet policy for the current public surface:
@@ -30,6 +35,8 @@ The first fixture pass settled the title-only snippet policy for the current pub
 - cover the same title/body expectations in both the default in-memory index path and the macOS SearchKit-backed path
 
 In practical terms, simple result lists can keep rendering a snippet for every explained hit, while richer consumers can avoid treating a title snippet as body evidence.
+
+The second fixture pass added a compact-evidence ranking expectation for the default in-memory path. For `allTerms` search, a document that places all terms close together should beat a near-miss that satisfies the same terms only through scattered mentions. That keeps the default backend closer to what an app user means by "this result is about my query" without turning `FetchCore` into a larger ranking DSL.
 
 ## Hugging Face Dependency Boundary
 
@@ -56,6 +63,6 @@ Hugging Face documents dataset parquet discovery through the Dataset Viewer serv
 Use this fixture to keep the settled Milestone 4 result-evidence behavior honest while broader quality work continues:
 
 - whether the current ranking and snippet heuristics are enough for ordinary app callers
-- whether a larger fixture corpus exposes ranking or snippet gaps that the mini corpus cannot show
-- whether near-miss records and longer-body records keep ranking and snippet behavior aligned between the default in-memory path and the SearchKit-backed path
+- whether larger app-like corpora expose ranking or snippet gaps that the mini corpus cannot show
+- whether additional checked-in micro-records, generated local fixtures, or an opt-in live dataset lane would add enough value to justify the extra maintenance
 - whether future extended snippets should be backed by precomputed summaries for larger documents rather than by foreground search-time work

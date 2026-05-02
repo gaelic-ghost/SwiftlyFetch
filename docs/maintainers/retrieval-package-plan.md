@@ -424,12 +424,12 @@ The current family direction is:
 
 - `RAGCore` and `RAGKit` stay responsible for semantic retrieval: chunking, embeddings, vector indexing, semantic search, filtering, and context assembly
 - `FetchCore` is the low-level document and traditional full-text-search core
-- `FetchKit` is the higher-level document/search implementation layer, centered on Core Data as the durable store and SearchKit-backed indexing and retrieval on macOS first
+- `FetchKit` is the higher-level document/search implementation layer, centered on Core Data as the durable store, SearchKit-backed indexing and retrieval on macOS first, and a default in-memory path for lightweight callers and tests
 - `SwiftlyFetch` is the umbrella product story that can eventually sit above both the semantic retrieval and traditional search families
 
 In plain language: `RAGKit` should not slowly become the home for conventional document search just because the repository name is broad. The intended model is sibling families with different search jobs, not one module family that tries to own everything.
 
-That family split is now real code, not just future-facing package-family planning. It still should not distort the retrieval-first scope of this document, but it should continue guiding naming and boundary decisions so later `FetchKit` work does not force conventional search concerns into the RAG modules.
+That family split is now real code, not just future-facing package-family planning. `FetchKit` also now has enough conventional-search quality coverage to make result behavior part of the product surface: field-aware ranking, compact all-term evidence in the default in-memory backend, query-aware snippets, title/body evidence metadata, and SearchKit parity tests. It still should not distort the retrieval-first scope of this document, but it should continue guiding naming and boundary decisions so later `FetchKit` work does not force conventional search concerns into the RAG modules.
 
 ## Implementation Sequence
 
