@@ -18,7 +18,7 @@ Why this source fits the first pass:
 - the `chapters` config has chapter titles and chapter text, which is a useful shape for document-search quality tests
 - the corpus can be inspected through the Hugging Face Dataset Viewer APIs without adding a Swift dependency
 
-The fixture records live in `Tests/FetchKitTests/Fixtures/GutenbergMiniCorpus.swift`. Each record carries dataset, config, split, row, and Gutenberg ID metadata so the sample remains attributable and replaceable.
+The fixture records live in `Tests/FetchKitTests/Fixtures/GutenbergMiniCorpus.swift`. Each source-derived record carries dataset, config, split, row, and Gutenberg ID metadata so the sample remains attributable and replaceable. The fixture also includes small synthetic near-miss and longer-body records derived from the same topic shape. Those synthetic records exist to stress ranking and snippet selection without expanding the checked-in corpus into a large text dump.
 
 ## Result Evidence Policy
 
@@ -57,4 +57,5 @@ Use this fixture to keep the settled Milestone 4 result-evidence behavior honest
 
 - whether the current ranking and snippet heuristics are enough for ordinary app callers
 - whether a larger fixture corpus exposes ranking or snippet gaps that the mini corpus cannot show
+- whether near-miss records and longer-body records keep ranking and snippet behavior aligned between the default in-memory path and the SearchKit-backed path
 - whether future extended snippets should be backed by precomputed summaries for larger documents rather than by foreground search-time work
