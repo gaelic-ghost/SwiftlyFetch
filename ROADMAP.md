@@ -185,6 +185,7 @@ In Progress
 - [ ] Audit real-corpus result quality now that field-aware ranking, phrase weighting, truncation cues, and multi-term snippets are in place.
 - [ ] Decide whether title-only hits should suppress body snippets or use a different presentation policy in the public facade.
 - [ ] Keep the persistent `FetchKitLibrary` construction and search API surface under review as real callers exercise the current design.
+- [ ] Explore an opt-in extended snippet surface that can use idle time to precompute short document summaries for larger records, with Apple's [`FoundationModels`](https://developer.apple.com/documentation/foundationmodels) or another local summarization path as the first candidate instead of making foreground full-text search wait on summarization.
 
 ### Exit Criteria
 
@@ -258,6 +259,8 @@ Planned
 - Fixed Search Kit index ownership during teardown so the Search Kit verification lane is green again under both `swift test` and `xcodebuild test`.
 - Added a dedicated repo-maintenance helper for the focused Search Kit test lane and recorded persistent-surface polish plus ranking/snippet refinement as the next FetchKit work.
 - Tightened the persistent `FetchKitLibrary` surface around one resolved storage location, with Application Support defaults plus a direct directory override for local callers.
+- Added the first checked-in fixture corpus for `FetchKit` result-quality characterization, using a tiny attributed Hugging Face Project Gutenberg sample without adding a live dataset-download dependency to CI.
+- Kept title-only snippets as the default result explanation and added typed result metadata for matched fields plus snippet source field, so consumers can distinguish title evidence from body evidence.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.
 - Audited the Core Data-backed `FetchKit` store after a GitHub-hosted Swift Testing crash, recorded the executor-assumption findings, moved Core Data verification onto XCTest, and switched the durable store over to a private-queue Core Data context with the framework's async `perform` path.
 - Refined conventional-search result quality with modest field-aware ranking plus query-aware multi-term snippets across the in-memory and SearchKit-backed `FetchKit` paths.

@@ -317,23 +317,29 @@ public actor SearchKitFetchIndex: FetchIndex {
         }
 
         let score = existing.score + new.score
-        let snippet = preferredSnippet(existing: existing, new: new)
+        let snippetMatch = preferredSnippet(existing: existing, new: new)
         return FetchSearchResult(
             document: existing.document,
             score: score,
-            snippet: snippet
+            snippet: snippetMatch.snippet,
+            matchedFields: existing.matchedFields.union([new.field]),
+            snippetField: snippetMatch.field
         )
     }
 
     private func preferredSnippet(
         existing: FetchSearchResult,
         new: FieldSearchMatch
-    ) -> FetchSnippet? {
+    ) -> (snippet: FetchSnippet?, field: FetchSearchField?) {
         if new.field == .body, new.snippet != nil {
-            return new.snippet
+            return (new.snippet, new.field)
         }
 
-        return existing.snippet ?? new.snippet
+        if let existingSnippet = existing.snippet {
+            return (existingSnippet, existing.snippetField)
+        }
+
+        return (new.snippet, new.snippet == nil ? nil : new.field)
     }
 
     private func normalize(
@@ -413,7 +419,9 @@ private struct FieldSearchMatch {
         FetchSearchResult(
             document: document,
             score: score,
-            snippet: snippet
+            snippet: snippet,
+            matchedFields: [field],
+            snippetField: snippet == nil ? nil : field
         )
     }
 }

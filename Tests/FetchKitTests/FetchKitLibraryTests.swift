@@ -116,6 +116,8 @@ struct FetchKitLibraryTests {
         #expect(results.count == 1)
         #expect(results[0].document.id == "doc-apple")
         #expect(results[0].snippet?.text.contains("bright") == true)
+        #expect(results[0].matchedFields == [.body])
+        #expect(results[0].snippetField == .body)
     }
 
     @Test("FetchKitLibrary prefers title matches over body-only matches")
@@ -139,6 +141,10 @@ struct FetchKitLibraryTests {
 
         #expect(results.count == 2)
         #expect(results.map(\.document.id) == ["doc-title", "doc-body"])
+        #expect(results[0].matchedFields == [.title])
+        #expect(results[0].snippetField == .title)
+        #expect(results[1].matchedFields == [.body])
+        #expect(results[1].snippetField == .body)
     }
 
     @Test("FetchKitLibrary snippets highlight multiple query terms")
@@ -159,6 +165,8 @@ struct FetchKitLibraryTests {
         #expect(snippet.text.localizedCaseInsensitiveContains("bright"))
         #expect(snippet.text.localizedCaseInsensitiveContains("crisp"))
         #expect(snippet.matchRanges.count >= 2)
+        #expect(results.first?.matchedFields == [.body])
+        #expect(results.first?.snippetField == .body)
     }
 
     @Test("FetchKitLibrary snippets show truncation markers when context is cropped")

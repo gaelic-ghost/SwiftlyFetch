@@ -59,6 +59,27 @@ struct FetchCoreSearchModelTests {
         #expect(result.score == 0.9)
         #expect(result.snippet?.text == "Apples are bright and crisp.")
         #expect(result.snippet?.matchRanges == [FetchMatchRange(lowerBound: 0, upperBound: 6)])
+        #expect(result.matchedFields.isEmpty)
+        #expect(result.snippetField == nil)
+    }
+
+    @Test("Fetch search results can describe matched fields and snippet source")
+    func fetchSearchResultsDescribeMatchedFields() {
+        let document = FetchDocument(
+            id: "doc-apple",
+            title: "Apple Guide",
+            body: "Apples are bright and crisp."
+        )
+        let result = FetchSearchResult(
+            document: document,
+            score: 0.9,
+            snippet: FetchSnippet(text: "Apple Guide"),
+            matchedFields: [.title],
+            snippetField: .title
+        )
+
+        #expect(result.matchedFields == [.title])
+        #expect(result.snippetField == .title)
     }
 
     @Test("Fetch document records keep durable metadata separate from search and index views")

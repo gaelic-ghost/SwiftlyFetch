@@ -68,7 +68,9 @@ actor InMemoryFetchIndex: FetchIndex {
             score: score,
             snippet: snippetMatch.flatMap { match in
                 FetchSearchSupport.buildSnippet(from: match.text, query: query)
-            }
+            },
+            matchedFields: Set(matches.map(\.field)),
+            snippetField: snippetMatch?.field
         )
     }
 

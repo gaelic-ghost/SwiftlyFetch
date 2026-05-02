@@ -53,14 +53,20 @@ public struct FetchSearchResult: Hashable, Codable, Sendable {
     public let document: FetchDocument
     public let score: Double
     public let snippet: FetchSnippet?
+    public let matchedFields: Set<FetchSearchField>
+    public let snippetField: FetchSearchField?
 
     public init(
         document: FetchDocument,
         score: Double,
-        snippet: FetchSnippet? = nil
+        snippet: FetchSnippet? = nil,
+        matchedFields: Set<FetchSearchField> = [],
+        snippetField: FetchSearchField? = nil
     ) {
         self.document = document
         self.score = score
         self.snippet = snippet
+        self.matchedFields = matchedFields
+        self.snippetField = snippetField
     }
 }
