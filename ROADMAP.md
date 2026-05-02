@@ -258,6 +258,7 @@ Planned
 - Fixed Search Kit index ownership during teardown so the Search Kit verification lane is green again under both `swift test` and `xcodebuild test`.
 - Added a dedicated repo-maintenance helper for the focused Search Kit test lane and recorded persistent-surface polish plus ranking/snippet refinement as the next FetchKit work.
 - Tightened the persistent `FetchKitLibrary` surface around one resolved storage location, with Application Support defaults plus a direct directory override for local callers.
+- Added the first checked-in fixture corpus for `FetchKit` result-quality characterization, using a tiny attributed Hugging Face Project Gutenberg sample without adding a live dataset-download dependency to CI.
 - Recorded that the GitHub-hosted `macos-15` Natural Language verification attempt timed out, so Apple-asset coverage stays local-only for now.
 - Audited the Core Data-backed `FetchKit` store after a GitHub-hosted Swift Testing crash, recorded the executor-assumption findings, moved Core Data verification onto XCTest, and switched the durable store over to a private-queue Core Data context with the framework's async `perform` path.
 - Refined conventional-search result quality with modest field-aware ranking plus query-aware multi-term snippets across the in-memory and SearchKit-backed `FetchKit` paths.
