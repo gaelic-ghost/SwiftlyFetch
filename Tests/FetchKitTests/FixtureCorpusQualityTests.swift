@@ -51,7 +51,10 @@ struct FixtureCorpusQualityTests {
             limit: 4
         )
 
-        #expect(foodStorageResults.map(\.document.id) == ["gutenberg-78430-chapter-1"])
+        #expect(foodStorageResults.map(\.document.id).prefix(2) == [
+            "gutenberg-78430-chapter-1",
+            "fixture-botany-near-miss",
+        ])
         #expect(germinationResults.map(\.document.id) == ["gutenberg-78430-chapter-2"])
     }
 
@@ -73,6 +76,45 @@ struct FixtureCorpusQualityTests {
         #expect(firstResult.snippetField == .title)
         #expect(snippet.text.localizedCaseInsensitiveContains("rocket test pilot"))
         #expect(!snippet.text.localizedCaseInsensitiveContains("Transcriber's Note"))
+    }
+
+    @Test("Fixture corpus ranks focused body evidence over near misses")
+    func fixtureCorpusRanksFocusedBodyEvidenceOverNearMisses() async throws {
+        let library = try await indexedFixtureLibrary()
+
+        let results = try await library.search(
+            "storage food seeds",
+            kind: .allTerms,
+            fields: [.body],
+            limit: 4
+        )
+
+        #expect(results.map(\.document.id).prefix(2) == [
+            "gutenberg-78430-chapter-1",
+            "fixture-botany-near-miss",
+        ])
+        #expect(results.first?.snippet?.text.localizedCaseInsensitiveContains("storage of food in seeds") == true)
+    }
+
+    @Test("Fixture corpus selects useful snippets from longer bodies")
+    func fixtureCorpusSelectsUsefulSnippetsFromLongerBodies() async throws {
+        let library = try await indexedFixtureLibrary()
+
+        let results = try await library.search(
+            "pioneer chores neighbors cooperation",
+            kind: .allTerms,
+            fields: [.body],
+            limit: 4
+        )
+        let firstResult = try #require(results.first)
+        let snippet = try #require(firstResult.snippet)
+
+        #expect(firstResult.document.id == "fixture-long-frontier-body")
+        #expect(snippet.text.localizedCaseInsensitiveContains("pioneer children"))
+        #expect(snippet.text.localizedCaseInsensitiveContains("cooperation"))
+        #expect(snippet.text.hasPrefix("…"))
+        #expect(snippet.text.hasSuffix("…"))
+        #expect(firstResult.snippetField == .body)
     }
 
     private func indexedFixtureLibrary() async throws -> FetchKitLibrary {

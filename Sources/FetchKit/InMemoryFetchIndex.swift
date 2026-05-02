@@ -154,9 +154,11 @@ actor InMemoryFetchIndex: FetchIndex {
         lowercaseQuery: String,
         kind: FetchSearchKind
     ) -> SearchMatch? {
+        var seenTerms = Set<String>()
         let terms = lowercaseQuery
             .split(whereSeparator: \.isWhitespace)
             .map(String.init)
+            .filter { seenTerms.insert($0).inserted }
         guard !terms.isEmpty else {
             return nil
         }
@@ -172,8 +174,72 @@ actor InMemoryFetchIndex: FetchIndex {
         return SearchMatch(
             field: field,
             text: text,
-            score: boostedScore(base: 0.8 + (0.02 * Double(terms.count)), field: field, kind: kind)
+            score: boostedScore(
+                base: allTermsScoreBase(for: terms, in: lowercaseText),
+                field: field,
+                kind: kind
+            )
         )
+    }
+
+    private func allTermsScoreBase(for terms: [String], in lowercaseText: String) -> Double {
+        let base = 0.8 + (0.02 * Double(terms.count))
+        guard let compactness = termCompactness(for: terms, in: lowercaseText) else {
+            return base
+        }
+
+        return base + (0.12 * compactness)
+    }
+
+    private func termCompactness(for terms: [String], in lowercaseText: String) -> Double? {
+        let locationsByTerm = terms.map { term in
+            termLocations(for: term, in: lowercaseText)
+        }
+        guard locationsByTerm.allSatisfy({ !$0.isEmpty }) else {
+            return nil
+        }
+
+        let span = smallestCoveringSpan(in: locationsByTerm)
+        let totalTermLength = terms.reduce(0) { $0 + $1.count }
+        guard span > 0 else {
+            return nil
+        }
+
+        return min(1.0, Double(totalTermLength) / Double(span))
+    }
+
+    private func termLocations(for term: String, in lowercaseText: String) -> [Int] {
+        var locations: [Int] = []
+        var searchStart = lowercaseText.startIndex
+
+        while searchStart < lowercaseText.endIndex,
+              let range = lowercaseText.range(of: term, range: searchStart..<lowercaseText.endIndex) {
+            locations.append(lowercaseText.distance(from: lowercaseText.startIndex, to: range.lowerBound))
+            searchStart = range.upperBound
+        }
+
+        return locations
+    }
+
+    private func smallestCoveringSpan(in locationsByTerm: [[Int]]) -> Int {
+        var cursors = Array(repeating: 0, count: locationsByTerm.count)
+        var smallestSpan = Int.max
+
+        while true {
+            let currentLocations = locationsByTerm.enumerated().map { termIndex, locations in
+                (termIndex: termIndex, location: locations[cursors[termIndex]])
+            }
+            guard let minLocation = currentLocations.min(by: { $0.location < $1.location }),
+                  let maxLocation = currentLocations.max(by: { $0.location < $1.location }) else {
+                return smallestSpan
+            }
+
+            smallestSpan = min(smallestSpan, maxLocation.location - minLocation.location + 1)
+            cursors[minLocation.termIndex] += 1
+            if cursors[minLocation.termIndex] >= locationsByTerm[minLocation.termIndex].count {
+                return smallestSpan
+            }
+        }
     }
 
     private func boostedScore(

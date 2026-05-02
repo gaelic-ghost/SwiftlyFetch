@@ -237,6 +237,41 @@ final class SearchKitFetchIndexTests: XCTestCase {
         XCTAssertEqual(titleResults.first?.snippet?.text.localizedCaseInsensitiveContains("Transcriber's Note"), false)
     }
 
+    func testSearchKitFetchIndexMatchesFixtureCorpusNearMissAndLongBodyBehavior() async throws {
+        let index = try SearchKitFetchIndex(
+            configuration: .init(
+                storage: .inMemory,
+                indexNamePrefix: "SearchKitFetchIndexTests-\(UUID().uuidString)"
+            )
+        )
+
+        try await index.apply(
+            FetchIndexingChangeset(
+                GutenbergMiniCorpus.records.map { .upsert($0.indexDocument) }
+            )
+        )
+
+        let nearMissResults = try await index.search(
+            FetchSearchQuery("storage food seeds", kind: .allTerms, fields: [.body], limit: 4)
+        )
+        let longBodyResults = try await index.search(
+            FetchSearchQuery("pioneer chores neighbors cooperation", kind: .allTerms, fields: [.body], limit: 4)
+        )
+
+        XCTAssertEqual(nearMissResults.map(\.document.id).prefix(2), [
+            "gutenberg-78430-chapter-1",
+            "fixture-botany-near-miss",
+        ])
+        XCTAssertEqual(nearMissResults.first?.snippet?.text.localizedCaseInsensitiveContains("storage of food in seeds"), true)
+
+        XCTAssertEqual(longBodyResults.first?.document.id, "fixture-long-frontier-body")
+        XCTAssertEqual(longBodyResults.first?.snippet?.text.localizedCaseInsensitiveContains("pioneer children"), true)
+        XCTAssertEqual(longBodyResults.first?.snippet?.text.localizedCaseInsensitiveContains("cooperation"), true)
+        XCTAssertEqual(longBodyResults.first?.snippet?.text.hasPrefix("…"), true)
+        XCTAssertEqual(longBodyResults.first?.snippet?.text.hasSuffix("…"), true)
+        XCTAssertEqual(longBodyResults.first?.snippetField, .body)
+    }
+
     func testFetchKitLibraryBuildsPersistentPair() async throws {
         let temporaryDirectory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

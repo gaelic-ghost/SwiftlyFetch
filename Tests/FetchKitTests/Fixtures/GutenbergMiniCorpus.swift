@@ -90,5 +90,39 @@ enum GutenbergMiniCorpus {
                 "fixture.gutenbergID": "78432",
             ]
         ),
+        FetchDocumentRecord(
+            id: "fixture-botany-near-miss",
+            title: "Botany Classroom Supply Notes",
+            body: """
+            This note lists classroom supplies for a botany course: labels, trays, hand lenses, jars, and paper envelopes. It mentions seeds as specimens, food labels for classroom bins, and storage cabinets for materials, but it stays focused on supplies rather than seed structure.
+            """,
+            kind: .note,
+            language: "en",
+            sourceURI: source.url,
+            metadata: [
+                "fixture.dataset": source.datasetID,
+                "fixture.role": "near-miss",
+                "fixture.topic": "botany",
+            ]
+        ),
+        FetchDocumentRecord(
+            id: "fixture-long-frontier-body",
+            title: "Frontier Field Notes",
+            body: """
+            Opening notes describe travel preparations, camp inventory, river crossings, and weather observations before the main subject appears. The early paragraphs are intentionally broad so snippet selection has to skip unhelpful front matter and move toward the useful passage.
+
+            A later section focuses on pioneer children learning conduct of life through frontier chores, animal care, and cooperation with neighbors. The passage repeats pioneer children and frontier life together because those are the terms a reader would expect a useful search result to explain.
+
+            Closing notes return to general scenery, wagon repairs, and family correspondence, giving the snippet builder material on both sides of the relevant section.
+            """,
+            kind: .note,
+            language: "en",
+            sourceURI: source.url,
+            metadata: [
+                "fixture.dataset": source.datasetID,
+                "fixture.role": "long-body",
+                "fixture.topic": "frontier",
+            ]
+        ),
     ]
 }
