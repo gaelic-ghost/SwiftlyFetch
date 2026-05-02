@@ -30,6 +30,8 @@ struct FixtureCorpusQualityTests {
         #expect(firstResult.snippet?.text.localizedCaseInsensitiveContains("food") == true)
         #expect(firstResult.snippet?.text.localizedCaseInsensitiveContains("seeds") == true)
         #expect((firstResult.snippet?.matchRanges.count ?? 0) >= 3)
+        #expect(firstResult.matchedFields == [.body])
+        #expect(firstResult.snippetField == .body)
     }
 
     @Test("Fixture corpus keeps closely related chapters separate")
@@ -67,6 +69,8 @@ struct FixtureCorpusQualityTests {
         let snippet = try #require(firstResult.snippet)
 
         #expect(firstResult.document.id == "gutenberg-78431-book")
+        #expect(firstResult.matchedFields == [.title])
+        #expect(firstResult.snippetField == .title)
         #expect(snippet.text.localizedCaseInsensitiveContains("rocket test pilot"))
         #expect(!snippet.text.localizedCaseInsensitiveContains("Transcriber's Note"))
     }

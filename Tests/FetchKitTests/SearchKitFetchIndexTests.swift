@@ -40,8 +40,12 @@ final class SearchKitFetchIndexTests: XCTestCase {
         )
 
         XCTAssertEqual(titleResults.map(\.document.id), ["doc-apple"])
+        XCTAssertEqual(titleResults.first?.matchedFields, [.title])
+        XCTAssertEqual(titleResults.first?.snippetField, .title)
         XCTAssertEqual(bodyResults.map(\.document.id), ["doc-orange"])
         XCTAssertEqual(bodyResults.first?.snippet?.text.contains("juicy"), true)
+        XCTAssertEqual(bodyResults.first?.matchedFields, [.body])
+        XCTAssertEqual(bodyResults.first?.snippetField, .body)
     }
 
     func testSearchKitFetchIndexPrefersTitleMatchesOverBodyOnlyMatches() async throws {
@@ -76,6 +80,8 @@ final class SearchKitFetchIndexTests: XCTestCase {
         )
 
         XCTAssertEqual(results.map(\.document.id), ["doc-title", "doc-body"])
+        XCTAssertEqual(results.first?.matchedFields, [.title])
+        XCTAssertEqual(results.first?.snippetField, .title)
     }
 
     func testSearchKitFetchIndexHighlightsMultipleQueryTermsInSnippets() async throws {
@@ -106,6 +112,8 @@ final class SearchKitFetchIndexTests: XCTestCase {
         XCTAssertEqual(results.first?.snippet?.text.localizedCaseInsensitiveContains("bright"), true)
         XCTAssertEqual(results.first?.snippet?.text.localizedCaseInsensitiveContains("crisp"), true)
         XCTAssertGreaterThanOrEqual(results.first?.snippet?.matchRanges.count ?? 0, 2)
+        XCTAssertEqual(results.first?.matchedFields, [.body])
+        XCTAssertEqual(results.first?.snippetField, .body)
     }
 
     func testSearchKitFetchIndexShowsSnippetTruncationMarkers() async throws {
