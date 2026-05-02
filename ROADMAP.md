@@ -175,7 +175,8 @@ In Progress
 ### Scope
 
 - [x] Refine conventional-search ranking and snippet behavior now that the first SearchKit backend works end to end.
-- [ ] Validate whether the current refinement pass is enough for ordinary app callers or whether another real-corpus quality pass is needed.
+- [x] Validate the current refinement pass against a broader checked-in fixture corpus with near-miss ranking and longer-body snippet cases.
+- [ ] Validate whether the current refinement pass is enough for ordinary app callers against larger real app corpora.
 - [ ] Keep the public `FetchKitLibrary` surface polished as the conventional-search side moves from foundation into quality work.
 
 ### Tickets
@@ -184,7 +185,9 @@ In Progress
 - [x] Improve snippet behavior and result presentation without bloating `FetchCore` into a larger query or rendering DSL.
 - [x] Add the first checked-in fixture corpus and cover title/body result-evidence behavior across the default in-memory path and the macOS SearchKit-backed path.
 - [x] Decide that title-only hits should keep title snippets while exposing `matchedFields` and `snippetField` so consumers can distinguish title evidence from body evidence.
-- [ ] Audit broader real-corpus result quality now that field-aware ranking, phrase weighting, truncation cues, multi-term snippets, and field-evidence metadata are in place.
+- [x] Add broader fixture-corpus pressure for near-miss all-term ranking and longer-body snippet selection across the default in-memory path and the macOS SearchKit-backed path.
+- [x] Refine the default in-memory all-term ranker so tighter evidence beats scattered term mentions instead of falling through to document ID tie-breaking.
+- [ ] Audit larger app-like corpus result quality now that field-aware ranking, compact all-term evidence, phrase weighting, truncation cues, multi-term snippets, and field-evidence metadata are in place.
 - [ ] Keep the persistent `FetchKitLibrary` construction and search API surface under review as real callers exercise the current design.
 - [ ] Explore an opt-in extended snippet surface that can use idle time to precompute short document summaries for larger records, with Apple's [`FoundationModels`](https://developer.apple.com/documentation/foundationmodels) or another local summarization path as the first candidate instead of making foreground full-text search wait on summarization.
 
@@ -223,6 +226,7 @@ Planned
 - [ ] If parser-backed markdown chunking still leaves retrieval-quality gaps, add retrieval-specific chunking heuristics on top of the chosen markdown parser instead of rebuilding markdown parsing rules locally.
 - [ ] If asset-backed automation becomes important again, evaluate a self-hosted macOS runner with prewarmed assets before retrying a hosted GitHub Actions lane.
 - [ ] Consider a follow-on conventional-search quality pass only if real corpora show ranking, snippet, or result-presentation gaps beyond the current field-aware heuristics.
+- [ ] Evaluate whether fixture-corpus coverage should grow through additional checked-in micro-records, generated local fixtures, or an opt-in live dataset lane before adopting a Swift Hub dependency.
 
 ## History
 
@@ -269,3 +273,4 @@ Planned
 - Promoted the SearchKit-backed test suite from a local opt-in lane into normal XCTest validation and the default GitHub CI path once the lane proved fast and stable enough.
 - Promoted the Natural Language integration lane into default local maintainer validation, but kept it out of GitHub-hosted CI after another hosted experiment remained stuck in the asset-backed step for minutes while the local path completed in seconds.
 - Opened the next roadmap phase around SearchKit/Natural Language verification strategy, iOS conventional-search backend direction, and another caller-driven `FetchKitLibrary` polish pass if real usage shows it is needed.
+- Broadened the checked-in fixture corpus with synthetic near-miss and longer-body records, added in-memory and SearchKit parity coverage for those cases, and refined in-memory all-term ranking so compact evidence beats scattered mentions.
