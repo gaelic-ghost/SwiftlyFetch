@@ -114,7 +114,7 @@ These constructors keep the same chunker and embedder defaults as the in-memory 
 
 ## Follow-Up Design Work
 
-The next architecture work should focus on shared corpus ingestion rather than another standalone index backend.
+The next architecture work should focus on shared corpus ingestion rather than another standalone index backend. The detailed umbrella plan lives in [swiftlyfetch-facade-plan.md](./swiftlyfetch-facade-plan.md).
 
 Recommended order:
 

@@ -221,6 +221,7 @@ In Progress
 - [x] Cover persisted vector-index round trips, replacement, filtering, document removal, remove-all behavior, and `KnowledgeBase` convenience reuse.
 - [x] Record the hybrid search persistence ownership model in maintainer docs.
 - [x] Keep retry scheduling above the sibling packages while storing semantic health truth in `RAGKit`.
+- [x] Plan the first `SwiftlyFetch` umbrella facade in maintainer docs.
 - [ ] Add a narrow bridge from `FetchDocumentRecord` to `RAGCore.Document`.
 - [ ] Add an umbrella ingestion surface only after the semantic persisted index is stable.
 
