@@ -21,7 +21,7 @@ An Apple-first Swift Package family for local document search and semantic retri
 
 SwiftlyFetch is the umbrella product direction for a small family of Apple-first local search packages. The product goal is simple: hand the system a local corpus and get back a real search engine, with conventional search and semantic retrieval both living under one coherent Swift-native story. In practical terms, SwiftlyFetch is the family for "drop in a corpus, get back local search," with `FetchKit` covering conventional full-document search and `RAGKit` covering semantic retrieval over the same broader corpus model.
 
-Today, the package exposes shipped semantic retrieval work through `RAGCore` and `RAGKit`, plus the first conventional-search foundation through `FetchCore` and `FetchKit`. `FetchCore` now owns the portable conventional-search vocabulary, the durable document-record model, and the indexing-changeset boundary. That record model carries first-class typed lifecycle and source fields like `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while leaving the freeform metadata bag string-based. `FetchCore` also distinguishes between the durable stored record, the lean search-facing document view, and the richer index-facing payload used by the sync boundary. `FetchKitLibrary` now supports a default in-memory construction path, and `FetchKit` includes a Core Data-backed `FetchDocumentStore`, a persisted pending-sync queue, and the first thin macOS SearchKit-backed index. Conventional-search results carry field evidence through `matchedFields` and `snippetField`, so UI code can tell whether a result matched title text, body text, or both. The default in-memory search path now also rewards tighter all-term evidence, so a focused passage can rank ahead of a scattered near-miss instead of relying on document ID tie-breaking.
+Today, the package exposes shipped semantic retrieval work through `RAGCore` and `RAGKit`, plus the first conventional-search foundation through `FetchCore` and `FetchKit`. `FetchCore` now owns the portable conventional-search vocabulary, the durable document-record model, and the indexing-changeset boundary. That record model carries first-class typed lifecycle and source fields like `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while leaving the freeform metadata bag string-based. `FetchCore` also distinguishes between the durable stored record, the lean search-facing document view, and the richer index-facing payload used by the sync boundary. `FetchKitLibrary` now supports a default in-memory construction path, and `FetchKit` includes a Core Data-backed `FetchDocumentStore`, a persisted pending-sync queue, and the first thin macOS SearchKit-backed index. `RAGKit` now also includes a Core Data-backed `VectorIndex` implementation for persisted semantic chunks and embeddings, so semantic retrieval can survive process restarts without forcing vector-storage concerns into `FetchKit`. Conventional-search results carry field evidence through `matchedFields` and `snippetField`, so UI code can tell whether a result matched title text, body text, or both. The default in-memory search path now also rewards tighter all-term evidence, so a focused passage can rank ahead of a scattered near-miss instead of relying on document ID tie-breaking.
 
 The intended family split is:
 
@@ -79,6 +79,12 @@ import RAGKit
 
 let localKB = try await KnowledgeBase.hashingDefault()
 let appleKB = try await KnowledgeBase.naturalLanguageDefault(languageHint: "en")
+let semanticStore = FileManager.default
+    .temporaryDirectory
+    .appendingPathComponent("SwiftlyFetchSemantic.sqlite")
+let persistentKB = try await KnowledgeBase.persistentHashingDefault(
+    configuration: .init(store: .sqlite(semanticStore))
+)
 let fetchQuery = FetchSearchQuery("apple guide", kind: .allTerms)
 let library = FetchKitLibrary()
 ```
@@ -136,6 +142,7 @@ Current defaults:
 - markdown link destinations stay out of chunk text by default, but `HeadingAwareMarkdownChunker(linkDestinationMetadataMode: .include)` can record raw destinations in chunk metadata when downstream indexing or fetch-oriented work needs them
 - `hashingDefault()` gives a deterministic local path for tests and examples
 - `naturalLanguageDefault()` uses the Apple Natural Language backend on supported platforms
+- `persistentHashingDefault(configuration:dimension:)` and `persistentNaturalLanguageDefault(configuration:languageHint:)` use the same retrieval defaults with a Core Data-backed semantic vector index
 - metadata filtering supports explicit exclusions, ordered comparisons for `int`, `double`, and `date`, plus case-insensitive `startsWith` and `endsWith` string matching
 - markdown list items keep heading and immediate lead-in context in chunk text, and also carry structured chunk metadata for list kind, lead-in, ordinal, and heading path
 - markdown block quotes stay secondary by default, but are promoted into the primary retrieval stream when they make up more than one third of the document's chunkable block structure
@@ -153,6 +160,7 @@ Supported today:
 - build a local knowledge base from plain text and markdown documents
 - use deterministic hashing embeddings for tests, previews, and fully local examples
 - use Apple Natural Language embeddings for on-device semantic retrieval on supported platforms
+- persist semantic chunks and embeddings through `CoreDataVectorIndex`
 - use `FetchKitLibrary()` with a default in-memory backend or inject custom `FetchDocumentStore` and `FetchIndex` implementations explicitly
 - use a real Core Data-backed `FetchDocumentStore` in `FetchKit` with the first thin macOS SearchKit index backend
 - persist and retry pending index-sync work through `FetchKitLibrary.pendingIndexSyncs()` and `retryPendingIndexSyncs(...)`

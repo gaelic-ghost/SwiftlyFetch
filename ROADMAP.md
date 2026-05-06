@@ -12,7 +12,8 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 - [Milestone 2: Post-v0.1.0 Refinement](#milestone-2-post-v010-refinement)
 - [Milestone 3: FetchKit Foundation](#milestone-3-fetchkit-foundation)
 - [Milestone 4: FetchKit Refinement](#milestone-4-fetchkit-refinement)
-- [Milestone 5: FetchKit Platform And CI Decisions](#milestone-5-fetchkit-platform-and-ci-decisions)
+- [Milestone 5: Semantic Index Persistence](#milestone-5-semantic-index-persistence)
+- [Milestone 6: FetchKit Platform And CI Decisions](#milestone-6-fetchkit-platform-and-ci-decisions)
 - [Backlog Candidates](#backlog-candidates)
 - [History](#history)
 
@@ -33,7 +34,8 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 - Milestone 2: Post-v0.1.0 Refinement - Completed
 - Milestone 3: FetchKit Foundation - Completed
 - Milestone 4: FetchKit Refinement - In Progress
-- Milestone 5: FetchKit Platform And CI Decisions - Planned
+- Milestone 5: Semantic Index Persistence - In Progress
+- Milestone 6: FetchKit Platform And CI Decisions - Planned
 
 ## Milestone 0: Foundation
 
@@ -197,7 +199,36 @@ In Progress
 - [x] The SearchKit-backed path runs in normal local validation and the default GitHub CI lane.
 - [ ] `FetchKitLibrary` still reads like a small Swift-native facade instead of exposing backend detail drift.
 
-## Milestone 5: FetchKit Platform And CI Decisions
+## Milestone 5: Semantic Index Persistence
+
+### Status
+
+In Progress
+
+### Scope
+
+- [x] Add a `RAGKit`-owned persisted semantic vector index while keeping the public contract behind `VectorIndex`.
+- [x] Keep semantic chunks and embeddings as derived retrieval state instead of moving them into the `FetchKit` corpus store.
+- [x] Add persistent `KnowledgeBase` convenience constructors that preserve the current chunking and embedding defaults.
+- [ ] Design the future one-corpus ingestion facade that coordinates `FetchKit` corpus writes with `RAGKit` semantic indexing.
+- [ ] Decide semantic indexing retry and stale-state policy for failures after durable corpus writes succeed.
+
+### Tickets
+
+- [x] Add `CoreDataVectorIndex` as the first persisted semantic index backend.
+- [x] Persist chunk identity, document identity, chunk text, metadata, source position, embedding vectors, and update timestamps.
+- [x] Cover persisted vector-index round trips, replacement, filtering, document removal, remove-all behavior, and `KnowledgeBase` convenience reuse.
+- [x] Record the hybrid search persistence ownership model in maintainer docs.
+- [ ] Add a narrow bridge from `FetchDocumentRecord` to `RAGCore.Document`.
+- [ ] Add an umbrella ingestion surface only after the semantic persisted index is stable.
+
+### Exit Criteria
+
+- [x] Semantic retrieval can survive process restarts without re-chunking and re-embedding the corpus.
+- [x] `RAGKit` owns semantic persistence without making `FetchCore` depend on `RAGCore`.
+- [ ] The repo has a concrete next-step plan for one ingestion surface and both search modes.
+
+## Milestone 6: FetchKit Platform And CI Decisions
 
 ### Status
 
