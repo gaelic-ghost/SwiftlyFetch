@@ -160,6 +160,7 @@ Implemented today:
   - `AppleContextualEmbeddingBackend`
   - convenience constructors for `hashingDefault()`, `naturalLanguageDefault()`, `persistentHashingDefault(configuration:dimension:)`, and `persistentNaturalLanguageDefault(configuration:languageHint:)`
 - semantic index persistence now exists as a `RAGKit`-owned derived store through `CoreDataVectorIndex`, keeping semantic chunks and embeddings behind the existing `VectorIndex` protocol instead of pushing vector-storage concerns into `FetchKit`
+- persisted semantic index health now exists as a `RAGKit` concern through document-level status and fingerprints, while retry scheduling remains reserved for the future umbrella ingestion surface
 - markdown chunking now uses a parser-backed internal section model built on [swift-markdown](https://github.com/swiftlang/swift-markdown) instead of the earlier line-based heading scanner
 - list-item chunks now preserve immediate lead-in context in chunk text and also expose chunk metadata for block kind, list kind, lead-in, ordinal, and heading path
 - block quotes stay secondary by default but are promoted into the primary retrieval stream when they make up more than one third of the document's chunkable block structure
@@ -171,12 +172,13 @@ Implemented today:
 - inline links and reference links now default to visible anchor text in chunk text, while raw destinations and reference definitions stay secondary and do not become standalone retrieval chunks unless a caller explicitly opts into chunk metadata for destinations
 - deterministic tests cover the main retrieval flow and the Natural Language wrapper seam
 - Core Data-backed vector-index tests cover persisted semantic chunks, replacement, filtering, document removal, remove-all behavior, and the persistent `KnowledgeBase` convenience path
+- semantic-state tests cover current, stale, failed, and source-fingerprint-change behavior
 - a real Natural Language integration test target exists, now runs in default local maintainer validation, and remains out of the default GitHub-hosted lane because the hosted `macos-15` path stalled in the Natural Language step
 
 Still intentionally incomplete:
 
 - the one-corpus umbrella ingestion facade that coordinates `FetchKit` writes and `RAGKit` semantic indexing
-- semantic indexing retry and stale-state policy for failures after a durable corpus write succeeds
+- umbrella-owned retry scheduling for semantic indexing failures after a durable corpus write succeeds
 - markdown policy refinement for additional block kinds and future evolution
 - optional future retrieval-default refinements only if concrete caller needs emerge beyond the current exclusion, ordered-comparison, and grouped-context defaults
 

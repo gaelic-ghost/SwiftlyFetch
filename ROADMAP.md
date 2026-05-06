@@ -210,8 +210,9 @@ In Progress
 - [x] Add a `RAGKit`-owned persisted semantic vector index while keeping the public contract behind `VectorIndex`.
 - [x] Keep semantic chunks and embeddings as derived retrieval state instead of moving them into the `FetchKit` corpus store.
 - [x] Add persistent `KnowledgeBase` convenience constructors that preserve the current chunking and embedding defaults.
+- [x] Add RAG-owned semantic status and fingerprint records for persisted semantic indexes.
 - [ ] Design the future one-corpus ingestion facade that coordinates `FetchKit` corpus writes with `RAGKit` semantic indexing.
-- [ ] Decide semantic indexing retry and stale-state policy for failures after durable corpus writes succeed.
+- [x] Decide semantic indexing retry and stale-state policy for failures after durable corpus writes succeed.
 
 ### Tickets
 
@@ -219,6 +220,7 @@ In Progress
 - [x] Persist chunk identity, document identity, chunk text, metadata, source position, embedding vectors, and update timestamps.
 - [x] Cover persisted vector-index round trips, replacement, filtering, document removal, remove-all behavior, and `KnowledgeBase` convenience reuse.
 - [x] Record the hybrid search persistence ownership model in maintainer docs.
+- [x] Keep retry scheduling above the sibling packages while storing semantic health truth in `RAGKit`.
 - [ ] Add a narrow bridge from `FetchDocumentRecord` to `RAGCore.Document`.
 - [ ] Add an umbrella ingestion surface only after the semantic persisted index is stable.
 

@@ -1,13 +1,16 @@
 import RAGCore
 
 public struct NaturalLanguageEmbedder: Embedder, Sendable {
+    let languageHint: String?
     private let backend: any ContextualEmbeddingBackend
 
     public init(languageHint: String? = nil) throws {
-        self.backend = try AppleContextualEmbeddingBackend(languageHint: languageHint)
+        self.languageHint = languageHint
+        backend = try AppleContextualEmbeddingBackend(languageHint: languageHint)
     }
 
     init(backend: any ContextualEmbeddingBackend) {
+        languageHint = nil
         self.backend = backend
     }
 

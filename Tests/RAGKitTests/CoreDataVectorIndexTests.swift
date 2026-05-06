@@ -170,6 +170,115 @@ final class CoreDataVectorIndexTests: XCTestCase {
         XCTAssertEqual(results.first?.chunk.text, "Fruit Guide\nApples\n\nApples are bright and crisp.")
     }
 
+    func testKnowledgeBaseMarksSemanticStateCurrentAfterIndexing() async throws {
+        let index = try await CoreDataVectorIndex()
+        let knowledgeBase = KnowledgeBase(
+            chunker: DefaultChunker(),
+            embedder: HashingEmbedder(dimension: 16),
+            index: index
+        )
+
+        try await knowledgeBase.addDocument(
+            Document(
+                id: "doc-fruit",
+                content: .text("Apples are bright and crisp."),
+                metadata: ["kind": .string("guide")]
+            )
+        )
+
+        let state = try await index.state(for: "doc-fruit")
+
+        XCTAssertEqual(state?.status, .current)
+        XCTAssertEqual(state?.documentID, "doc-fruit")
+        XCTAssertEqual(state?.fingerprint?.chunker, "ragkit.paragraph-chunker.v1|ragkit.heading-aware-markdown.v1.links-omit")
+        XCTAssertEqual(state?.fingerprint?.embedder, "ragkit.hashing.16")
+        XCTAssertNotNil(state?.fingerprint?.source)
+        XCTAssertNotNil(state?.lastIndexedAt)
+        XCTAssertNil(state?.lastFailure)
+    }
+
+    func testKnowledgeBaseMarksSemanticStateFailedWhenEmbeddingFails() async throws {
+        let index = try await CoreDataVectorIndex()
+        let knowledgeBase = KnowledgeBase(
+            chunker: DefaultChunker(),
+            embedder: FailingEmbedder(),
+            index: index
+        )
+
+        do {
+            try await knowledgeBase.addDocument(
+                Document(
+                    id: "doc-fruit",
+                    content: .text("Apples are bright and crisp.")
+                )
+            )
+            XCTFail("Expected semantic indexing to surface the embedding failure.")
+        } catch {}
+
+        let state = try await index.state(for: "doc-fruit")
+
+        XCTAssertEqual(state?.status, .failed)
+        XCTAssertTrue(state?.fingerprint?.embedder.hasPrefix("custom.embedder.") == true)
+        XCTAssertTrue(state?.fingerprint?.embedder.contains("FailingEmbedder") == true)
+        XCTAssertEqual(state?.lastFailure, "embeddingUnavailable")
+        XCTAssertNil(state?.lastIndexedAt)
+    }
+
+    func testCoreDataVectorIndexCanMarkStateStale() async throws {
+        let index = try await CoreDataVectorIndex()
+        let fingerprint = SemanticIndexFingerprint(
+            source: "source-a",
+            chunker: "chunker-a",
+            embedder: "embedder-a"
+        )
+
+        try await index.markCurrent(documentID: "doc-fruit", fingerprint: fingerprint)
+        try await index.markStale(
+            documentID: "doc-fruit",
+            reason: "Source fingerprint changed."
+        )
+
+        let state = try await index.state(for: "doc-fruit")
+
+        XCTAssertEqual(state?.status, .stale)
+        XCTAssertEqual(state?.fingerprint, fingerprint)
+        XCTAssertEqual(state?.lastFailure, "Source fingerprint changed.")
+        XCTAssertNotNil(state?.lastIndexedAt)
+    }
+
+    func testSemanticSourceFingerprintChangesWithDocumentContent() async throws {
+        let index = try await CoreDataVectorIndex()
+        let firstKnowledgeBase = KnowledgeBase(
+            chunker: DefaultChunker(),
+            embedder: HashingEmbedder(),
+            index: index
+        )
+        try await firstKnowledgeBase.addDocument(
+            Document(
+                id: "doc-fruit",
+                content: .text("Apples are bright and crisp.")
+            )
+        )
+        let firstFingerprint = try await index.state(for: "doc-fruit")?.fingerprint?.source
+
+        let secondKnowledgeBase = KnowledgeBase(
+            chunker: DefaultChunker(),
+            embedder: HashingEmbedder(),
+            index: index
+        )
+        try await secondKnowledgeBase.addDocument(
+            Document(
+                id: "doc-fruit",
+                content: .text("Oranges are juicy and sweet.")
+            )
+        )
+        let secondFingerprint = try await index.state(for: "doc-fruit")?.fingerprint?.source
+
+        XCTAssertNotNil(firstFingerprint)
+        XCTAssertNotNil(secondFingerprint)
+        XCTAssertNotEqual(firstFingerprint, secondFingerprint)
+    }
+
     private func makeIndexedChunk(
         id: ChunkID,
         documentID: DocumentID,
@@ -218,5 +327,23 @@ final class CoreDataVectorIndexTests: XCTestCase {
         }
 
         return directory.appendingPathComponent("RAGKitVectorIndex.sqlite")
+    }
+}
+
+private struct FailingEmbedder: Embedder {
+    enum Failure: Error, CustomStringConvertible {
+        case embeddingUnavailable
+
+        var description: String {
+            "embeddingUnavailable"
+        }
+    }
+
+    func embed(chunks _: [Chunk]) async throws -> [EmbeddingVector] {
+        throw Failure.embeddingUnavailable
+    }
+
+    func embed(query _: SearchQuery) async throws -> EmbeddingVector {
+        throw Failure.embeddingUnavailable
     }
 }

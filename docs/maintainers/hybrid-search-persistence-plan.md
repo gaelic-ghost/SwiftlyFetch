@@ -45,10 +45,27 @@ Its responsibilities are:
 - chunk source documents
 - embed chunks and queries
 - persist semantic chunks and vectors
+- persist per-document semantic index health
 - search vectors through the `VectorIndex` protocol
 - remove semantic chunks by document identifier
 
 The first persisted semantic backend is `CoreDataVectorIndex`. Core Data is a practical first backend because it is already part of the package's Apple-first persistence story, but the public contract remains `VectorIndex` so a future backend can replace it without changing `KnowledgeBase`.
+
+The semantic index state model is RAG-owned, not umbrella-owned. It records whether a document's semantic derived state is:
+
+- `missing`
+- `indexing`
+- `current`
+- `stale`
+- `failed`
+
+That state carries a semantic fingerprint made from:
+
+- a source fingerprint for the document content and retrieval-relevant metadata
+- a chunker fingerprint for the chunking policy
+- an embedder fingerprint for the embedding policy
+
+This lets `RAGKit` answer whether its own semantic index is trustworthy without needing to inspect a future retry queue.
 
 ### Future Umbrella Surface
 
@@ -61,9 +78,12 @@ Its job should be:
 - update the conventional search index
 - derive the semantic document input for `RAGKit`
 - update the semantic vector index
+- enqueue document IDs for semantic retry if semantic indexing fails after the corpus write succeeds
 - expose conventional, semantic, and later hybrid search entry points
 
 That facade should land after the semantic index is persistent. Otherwise it would hide a real durability mismatch behind a nicer API.
+
+The umbrella facade should own retry scheduling because retry needs to fetch the latest corpus record from `FetchKit` before re-indexing. `RAGKit` should own semantic health truth because it knows whether its chunks and vectors are current, stale, failed, or missing.
 
 ## First Implementation Slice
 
@@ -78,6 +98,10 @@ It persists:
 - chunk position
 - embedding vector
 - update timestamp
+- per-document semantic index status
+- semantic index fingerprint
+- last indexed timestamp
+- last failure description
 
 This is a durable building-block change. It gives `KnowledgeBase` restart-safe semantic retrieval without changing `RAGCore.VectorIndex` or making `FetchCore` depend on `RAGCore`.
 
@@ -96,13 +120,11 @@ Recommended order:
 
 1. Add a narrow bridge from `FetchDocumentRecord` to `RAGCore.Document`.
 2. Add an umbrella library facade that owns one ingestion operation and calls both sibling systems.
-3. Add explicit retry or stale-state handling for semantic indexing if embedding fails after the corpus write succeeds.
+3. Add an umbrella-owned semantic retry queue keyed by document ID, with attempt counts and next retry dates.
 4. Add hybrid result packaging only after conventional and semantic result paths are each independently durable.
 
 ## Open Questions
 
-- Should semantic indexing get a persisted pending-sync queue parallel to `FetchKit`'s pending SearchKit sync queue, or should the umbrella facade own cross-index retry state?
-- Should semantic derived records include an explicit chunker policy fingerprint and embedder fingerprint before the shared corpus facade lands?
 - Should the umbrella facade return one combined mutation result or separate conventional and semantic mutation summaries?
 - Should hybrid search combine scores inside the umbrella facade, or should it expose side-by-side result sets first?
 

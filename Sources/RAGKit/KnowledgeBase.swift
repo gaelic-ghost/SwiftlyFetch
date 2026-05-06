@@ -32,22 +32,40 @@ public actor KnowledgeBase {
     }
 
     public func addDocument(_ document: Document) async throws {
-        let chunks = try chunker.chunks(for: document)
-        let embeddings = try await embedder.embed(chunks: chunks)
+        let fingerprint = SemanticFingerprintFactory.fingerprint(
+            for: document,
+            chunker: chunker,
+            embedder: embedder
+        )
+        let stateStore = index as? any SemanticIndexStateStore
 
-        guard chunks.count == embeddings.count else {
-            throw KnowledgeBaseError.embedderReturnedUnexpectedVectorCount(
-                expected: chunks.count,
-                actual: embeddings.count
+        do {
+            try await stateStore?.markIndexing(documentID: document.id, fingerprint: fingerprint)
+            let chunks = try chunker.chunks(for: document)
+            let embeddings = try await embedder.embed(chunks: chunks)
+
+            guard chunks.count == embeddings.count else {
+                throw KnowledgeBaseError.embedderReturnedUnexpectedVectorCount(
+                    expected: chunks.count,
+                    actual: embeddings.count
+                )
+            }
+
+            let indexedChunks = zip(chunks, embeddings).map { chunk, embedding in
+                IndexedChunk(chunk: chunk, embedding: embedding)
+            }
+
+            try await index.removeChunks(for: document.id)
+            try await index.upsert(indexedChunks)
+            try await stateStore?.markCurrent(documentID: document.id, fingerprint: fingerprint)
+        } catch {
+            try? await stateStore?.markFailed(
+                documentID: document.id,
+                fingerprint: fingerprint,
+                reason: String(describing: error)
             )
+            throw error
         }
-
-        let indexedChunks = zip(chunks, embeddings).map { chunk, embedding in
-            IndexedChunk(chunk: chunk, embedding: embedding)
-        }
-
-        try await index.removeChunks(for: document.id)
-        try await index.upsert(indexedChunks)
     }
 
     public func removeDocument(_ documentID: DocumentID) async throws {
@@ -69,7 +87,7 @@ public actor KnowledgeBase {
 
     public func makeContext(
         for query: SearchQuery,
-        budget: ContextBudget = .characters(4_000),
+        budget: ContextBudget = .characters(4000),
         style: ContextStyle = .plain
     ) async throws -> String {
         let results = try await search(query)
@@ -92,7 +110,6 @@ public actor KnowledgeBase {
             guard remainingBudget != 0 else {
                 break
             }
-
             guard let section = renderSection(
                 result: result,
                 style: style,
@@ -126,7 +143,7 @@ public actor KnowledgeBase {
         for query: String,
         limit: Int = 5,
         filter: MetadataFilter? = nil,
-        budget: ContextBudget = .characters(4_000),
+        budget: ContextBudget = .characters(4000),
         style: ContextStyle = .plain
     ) async throws -> String {
         try await makeContext(
@@ -143,35 +160,35 @@ public actor KnowledgeBase {
         limit: Int?
     ) -> ContextSection? {
         switch style {
-        case .plain:
-            let fittedBody = fittedText(result.chunk.text, limit: limit)
-            guard !fittedBody.isEmpty else {
-                return nil
-            }
+            case .plain:
+                let fittedBody = fittedText(result.chunk.text, limit: limit)
+                guard !fittedBody.isEmpty else {
+                    return nil
+                }
 
-            return ContextSection(
-                text: fittedBody,
-                comparisonText: normalizedComparisonText(result.chunk.text)
-            )
-        case .annotated:
-            let score = String(format: "%.4f", result.score)
-            let header = annotatedHeader(
-                for: result,
-                score: score,
-                startsNewDocument: startsNewDocument
-            )
-            guard let fittedBody = fittedAnnotatedBody(
-                result.chunk.text,
-                prefix: header,
-                limit: limit
-            ) else {
-                return nil
-            }
+                return ContextSection(
+                    text: fittedBody,
+                    comparisonText: normalizedComparisonText(result.chunk.text)
+                )
+            case .annotated:
+                let score = String(format: "%.4f", result.score)
+                let header = annotatedHeader(
+                    for: result,
+                    score: score,
+                    startsNewDocument: startsNewDocument
+                )
+                guard let fittedBody = fittedAnnotatedBody(
+                    result.chunk.text,
+                    prefix: header,
+                    limit: limit
+                ) else {
+                    return nil
+                }
 
-            return ContextSection(
-                text: "\(header)\n\(fittedBody)",
-                comparisonText: normalizedComparisonText(result.chunk.text)
-            )
+                return ContextSection(
+                    text: "\(header)\n\(fittedBody)",
+                    comparisonText: normalizedComparisonText(result.chunk.text)
+                )
         }
     }
 
@@ -181,10 +198,10 @@ public actor KnowledgeBase {
         separatorCount: Int
     ) -> Int? {
         switch budget {
-        case .characters(let limit):
-            return max(0, limit - currentCharacterCount - separatorCount)
-        case .unlimited:
-            return nil
+            case let .characters(limit):
+                return max(0, limit - currentCharacterCount - separatorCount)
+            case .unlimited:
+                return nil
         }
     }
 
@@ -290,7 +307,6 @@ public actor KnowledgeBase {
         guard let limit else {
             return text
         }
-
         guard limit > 0 else {
             return ""
         }

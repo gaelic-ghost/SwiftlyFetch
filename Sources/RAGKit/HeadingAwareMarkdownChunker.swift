@@ -7,8 +7,9 @@ public enum MarkdownLinkDestinationMetadataMode: Sendable {
 }
 
 public struct HeadingAwareMarkdownChunker: Chunker, Sendable {
+    let linkDestinationMetadataMode: MarkdownLinkDestinationMetadataMode
+
     private let paragraphChunker: ParagraphChunker
-    private let linkDestinationMetadataMode: MarkdownLinkDestinationMetadataMode
 
     public init(
         paragraphChunker: ParagraphChunker = ParagraphChunker(),
@@ -19,7 +20,7 @@ public struct HeadingAwareMarkdownChunker: Chunker, Sendable {
     }
 
     public func chunks(for document: Document) throws -> [Chunk] {
-        guard case .markdown(let text) = document.content else {
+        guard case let .markdown(text) = document.content else {
             return try paragraphChunker.chunks(for: document)
         }
 
@@ -32,6 +33,7 @@ public struct HeadingAwareMarkdownChunker: Chunker, Sendable {
             guard scanResult.shouldFallbackToParagraphChunker else {
                 return []
             }
+
             return try paragraphChunker.chunks(for: document)
         }
 

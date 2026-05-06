@@ -2,7 +2,7 @@
 import Foundation
 import RAGCore
 
-public actor CoreDataVectorIndex: VectorIndex {
+public actor CoreDataVectorIndex: VectorIndex, SemanticIndexStateStore {
     public struct Configuration: Hashable, Sendable {
         public enum Store: Hashable, Sendable {
             case inMemory
@@ -105,6 +105,87 @@ public actor CoreDataVectorIndex: VectorIndex {
         )
     }
 
+    private static func fetchStoredState(
+        for documentID: DocumentID,
+        in context: NSManagedObjectContext
+    ) throws -> NSManagedObject? {
+        let request = NSFetchRequest<NSManagedObject>(entityName: EntityName.semanticState.rawValue)
+        request.fetchLimit = 1
+        request.predicate = NSPredicate(
+            format: "%K == %@",
+            SemanticStateProperty.documentID.rawValue,
+            documentID.rawValue
+        )
+        return try context.fetch(request).first
+    }
+
+    private static func fetchStoredStates(
+        for documentIDs: [DocumentID],
+        in context: NSManagedObjectContext
+    ) throws -> [NSManagedObject] {
+        guard !documentIDs.isEmpty else {
+            return []
+        }
+
+        let request = NSFetchRequest<NSManagedObject>(entityName: EntityName.semanticState.rawValue)
+        request.predicate = NSPredicate(
+            format: "%K IN %@",
+            SemanticStateProperty.documentID.rawValue,
+            documentIDs.map(\.rawValue)
+        )
+        return try context.fetch(request)
+    }
+
+    private static func upsertState(
+        documentID: DocumentID,
+        status: SemanticIndexStatus,
+        fingerprint: SemanticIndexFingerprint?,
+        lastIndexedAt: Date?,
+        lastFailure: String?,
+        in context: NSManagedObjectContext
+    ) throws {
+        let storedState = try fetchStoredState(for: documentID, in: context)
+            ?? NSEntityDescription.insertNewObject(
+                forEntityName: EntityName.semanticState.rawValue,
+                into: context
+            )
+
+        storedState.setValue(documentID.rawValue, forKey: SemanticStateProperty.documentID.rawValue)
+        storedState.setValue(status.rawValue, forKey: SemanticStateProperty.statusRaw.rawValue)
+        try storedState.setValue(fingerprint.map(encode), forKey: SemanticStateProperty.fingerprintData.rawValue)
+        storedState.setValue(lastIndexedAt, forKey: SemanticStateProperty.lastIndexedAt.rawValue)
+        storedState.setValue(lastFailure, forKey: SemanticStateProperty.lastFailure.rawValue)
+        storedState.setValue(Date(), forKey: SemanticStateProperty.updatedAt.rawValue)
+    }
+
+    private static func makeSemanticIndexState(from storedState: NSManagedObject) throws -> SemanticIndexState {
+        guard
+            let documentID = storedState.value(forKey: SemanticStateProperty.documentID.rawValue) as? String,
+            let statusRaw = storedState.value(forKey: SemanticStateProperty.statusRaw.rawValue) as? String
+        else {
+            throw StoreError.decodeFailed("A persisted semantic index state is missing one or more required fields.")
+        }
+
+        let fingerprint: SemanticIndexFingerprint?
+        if let fingerprintData = storedState.value(forKey: SemanticStateProperty.fingerprintData.rawValue) as? Data {
+            fingerprint = try decode(SemanticIndexFingerprint.self, from: fingerprintData)
+        } else {
+            fingerprint = nil
+        }
+
+        let status = SemanticIndexStatus(rawValue: statusRaw) ?? .failed
+        let updatedAt = (storedState.value(forKey: SemanticStateProperty.updatedAt.rawValue) as? Date) ?? .distantPast
+
+        return SemanticIndexState(
+            documentID: DocumentID(documentID),
+            status: status,
+            fingerprint: fingerprint,
+            lastIndexedAt: storedState.value(forKey: SemanticStateProperty.lastIndexedAt.rawValue) as? Date,
+            lastFailure: storedState.value(forKey: SemanticStateProperty.lastFailure.rawValue) as? String,
+            updatedAt: updatedAt
+        )
+    }
+
     private static func intValue(
         for property: StoredChunkProperty,
         in storedChunk: NSManagedObject
@@ -198,17 +279,32 @@ public actor CoreDataVectorIndex: VectorIndex {
         ]
         indexedChunkEntity.uniquenessConstraints = [[StoredChunkProperty.id.rawValue]]
 
-        model.entities = [indexedChunkEntity]
+        let semanticStateEntity = NSEntityDescription()
+        semanticStateEntity.name = EntityName.semanticState.rawValue
+        semanticStateEntity.managedObjectClassName = NSStringFromClass(NSManagedObject.self)
+        semanticStateEntity.properties = [
+            makeAttribute(name: SemanticStateProperty.documentID.rawValue, type: .stringAttributeType),
+            makeAttribute(name: SemanticStateProperty.statusRaw.rawValue, type: .stringAttributeType),
+            makeAttribute(name: SemanticStateProperty.fingerprintData.rawValue, type: .binaryDataAttributeType, isOptional: true),
+            makeAttribute(name: SemanticStateProperty.lastIndexedAt.rawValue, type: .dateAttributeType, isOptional: true),
+            makeAttribute(name: SemanticStateProperty.lastFailure.rawValue, type: .stringAttributeType, isOptional: true),
+            makeAttribute(name: SemanticStateProperty.updatedAt.rawValue, type: .dateAttributeType),
+        ]
+        semanticStateEntity.uniquenessConstraints = [[SemanticStateProperty.documentID.rawValue]]
+
+        model.entities = [indexedChunkEntity, semanticStateEntity]
         return model
     }
 
     private static func makeAttribute(
         name: String,
-        type: NSAttributeType
+        type: NSAttributeType,
+        isOptional: Bool = false
     ) -> NSAttributeDescription {
         let attribute = NSAttributeDescription()
         attribute.name = name
         attribute.attributeType = type
+        attribute.isOptional = isOptional
         return attribute
     }
 
@@ -287,6 +383,15 @@ public actor CoreDataVectorIndex: VectorIndex {
             for storedChunk in try context.fetch(request) {
                 context.delete(storedChunk)
             }
+
+            try Self.upsertState(
+                documentID: documentID,
+                status: .missing,
+                fingerprint: nil,
+                lastIndexedAt: nil,
+                lastFailure: nil,
+                in: context
+            )
         }
     }
 
@@ -296,6 +401,85 @@ public actor CoreDataVectorIndex: VectorIndex {
             for storedChunk in try context.fetch(request) {
                 context.delete(storedChunk)
             }
+
+            let stateRequest = NSFetchRequest<NSManagedObject>(entityName: EntityName.semanticState.rawValue)
+            for storedState in try context.fetch(stateRequest) {
+                context.delete(storedState)
+            }
+        }
+    }
+
+    public func state(for documentID: DocumentID) async throws -> SemanticIndexState? {
+        try await performRead { context in
+            try Self.fetchStoredState(for: documentID, in: context).map(Self.makeSemanticIndexState)
+        }
+    }
+
+    public func states(for documentIDs: [DocumentID]) async throws -> [SemanticIndexState] {
+        try await performRead { context in
+            try Self.fetchStoredStates(for: documentIDs, in: context)
+                .map(Self.makeSemanticIndexState)
+                .sorted { $0.documentID.rawValue < $1.documentID.rawValue }
+        }
+    }
+
+    public func markIndexing(documentID: DocumentID, fingerprint: SemanticIndexFingerprint) async throws {
+        try await performWrite { context in
+            try Self.upsertState(
+                documentID: documentID,
+                status: .indexing,
+                fingerprint: fingerprint,
+                lastIndexedAt: nil,
+                lastFailure: nil,
+                in: context
+            )
+        }
+    }
+
+    public func markCurrent(documentID: DocumentID, fingerprint: SemanticIndexFingerprint) async throws {
+        try await performWrite { context in
+            try Self.upsertState(
+                documentID: documentID,
+                status: .current,
+                fingerprint: fingerprint,
+                lastIndexedAt: Date(),
+                lastFailure: nil,
+                in: context
+            )
+        }
+    }
+
+    public func markStale(documentID: DocumentID, reason: String?) async throws {
+        try await performWrite { context in
+            let currentState = try Self.fetchStoredState(for: documentID, in: context)
+                .map(Self.makeSemanticIndexState)
+            try Self.upsertState(
+                documentID: documentID,
+                status: .stale,
+                fingerprint: currentState?.fingerprint,
+                lastIndexedAt: currentState?.lastIndexedAt,
+                lastFailure: reason,
+                in: context
+            )
+        }
+    }
+
+    public func markFailed(
+        documentID: DocumentID,
+        fingerprint: SemanticIndexFingerprint?,
+        reason: String
+    ) async throws {
+        try await performWrite { context in
+            let currentState = try Self.fetchStoredState(for: documentID, in: context)
+                .map(Self.makeSemanticIndexState)
+            try Self.upsertState(
+                documentID: documentID,
+                status: .failed,
+                fingerprint: fingerprint ?? currentState?.fingerprint,
+                lastIndexedAt: currentState?.lastIndexedAt,
+                lastFailure: reason,
+                in: context
+            )
         }
     }
 
@@ -329,6 +513,7 @@ public actor CoreDataVectorIndex: VectorIndex {
 
 private enum EntityName: String {
     case indexedChunk = "RAGIndexedChunk"
+    case semanticState = "RAGSemanticIndexState"
 }
 
 private enum StoredChunkProperty: String {
@@ -340,5 +525,14 @@ private enum StoredChunkProperty: String {
     case chunkIndex
     case startOffset
     case endOffset
+    case updatedAt
+}
+
+private enum SemanticStateProperty: String {
+    case documentID
+    case statusRaw
+    case fingerprintData
+    case lastIndexedAt
+    case lastFailure
     case updatedAt
 }
