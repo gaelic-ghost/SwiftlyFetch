@@ -72,6 +72,14 @@ public actor KnowledgeBase {
         try await index.removeChunks(for: documentID)
     }
 
+    public func semanticIndexState(for documentID: DocumentID) async throws -> SemanticIndexState? {
+        try await (index as? any SemanticIndexStateStore)?.state(for: documentID)
+    }
+
+    public func semanticIndexStates(for documentIDs: [DocumentID]) async throws -> [SemanticIndexState] {
+        try await (index as? any SemanticIndexStateStore)?.states(for: documentIDs) ?? []
+    }
+
     public func search(_ query: SearchQuery) async throws -> [SearchResult] {
         let embedding = try await embedder.embed(query: query)
         return try await index.search(query, embedding: embedding)

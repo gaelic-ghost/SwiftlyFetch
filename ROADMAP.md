@@ -211,7 +211,7 @@ In Progress
 - [x] Keep semantic chunks and embeddings as derived retrieval state instead of moving them into the `FetchKit` corpus store.
 - [x] Add persistent `KnowledgeBase` convenience constructors that preserve the current chunking and embedding defaults.
 - [x] Add RAG-owned semantic status and fingerprint records for persisted semantic indexes.
-- [ ] Design the future one-corpus ingestion facade that coordinates `FetchKit` corpus writes with `RAGKit` semantic indexing.
+- [x] Design the future one-corpus ingestion facade that coordinates `FetchKit` corpus writes with `RAGKit` semantic indexing.
 - [x] Decide semantic indexing retry and stale-state policy for failures after durable corpus writes succeed.
 
 ### Tickets
@@ -222,14 +222,14 @@ In Progress
 - [x] Record the hybrid search persistence ownership model in maintainer docs.
 - [x] Keep retry scheduling above the sibling packages while storing semantic health truth in `RAGKit`.
 - [x] Plan the first `SwiftlyFetch` umbrella facade in maintainer docs.
-- [ ] Add a narrow bridge from `FetchDocumentRecord` to `RAGCore.Document`.
-- [ ] Add an umbrella ingestion surface only after the semantic persisted index is stable.
+- [x] Add a narrow bridge from `FetchDocumentRecord` to `RAGCore.Document`.
+- [x] Add an umbrella ingestion surface only after the semantic persisted index is stable.
 
 ### Exit Criteria
 
 - [x] Semantic retrieval can survive process restarts without re-chunking and re-embedding the corpus.
 - [x] `RAGKit` owns semantic persistence without making `FetchCore` depend on `RAGCore`.
-- [ ] The repo has a concrete next-step plan for one ingestion surface and both search modes.
+- [x] The repo has a concrete next-step plan for one ingestion surface and both search modes.
 
 ## Milestone 6: FetchKit Platform And CI Decisions
 
@@ -308,3 +308,4 @@ Planned
 - Promoted the Natural Language integration lane into default local maintainer validation, but kept it out of GitHub-hosted CI after another hosted experiment remained stuck in the asset-backed step for minutes while the local path completed in seconds.
 - Opened the next roadmap phase around SearchKit/Natural Language verification strategy, iOS conventional-search backend direction, and another caller-driven `FetchKitLibrary` polish pass if real usage shows it is needed.
 - Broadened the checked-in fixture corpus with synthetic near-miss and longer-body records, added in-memory and SearchKit parity coverage for those cases, and refined in-memory all-term ranking so compact evidence beats scattered mentions.
+- Added the first `SwiftlyFetch` umbrella facade with a document mapper, one-corpus ingestion, separate conventional and semantic mutation outcomes, semantic retry storage, and macOS persistent construction.

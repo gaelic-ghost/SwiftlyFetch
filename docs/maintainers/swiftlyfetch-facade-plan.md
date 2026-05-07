@@ -137,6 +137,8 @@ For remove:
 
 The facade should make partial success explicit. A durable corpus write followed by a semantic indexing failure is not the same failure as a rejected corpus write.
 
+The first facade should stay singular-only. Batch mutation APIs can follow after the single-document result model proves useful and readable.
+
 ## Mutation Result Shape
 
 The first result should expose separate summaries rather than one flattened success flag.
@@ -160,6 +162,8 @@ Where conventional and semantic stages can say:
 
 The semantic stage should carry the semantic index state when available. This lets callers show that conventional search is current while semantic retrieval is queued or degraded.
 
+Conventional failures should throw before semantic work starts. Semantic failures after a successful corpus write should return `queuedRetry` and include the semantic failure detail instead of flattening the whole operation into one success flag.
+
 ## Semantic Retry Ownership
 
 The umbrella facade owns retry scheduling.
@@ -181,6 +185,7 @@ Suggested retry record:
 ```swift
 public struct SwiftlyFetchSemanticRetry: Hashable, Codable, Sendable {
     public var documentID: FetchDocumentID
+    public var operation: SwiftlyFetchSemanticRetryOperation
     public var reason: String
     public var attemptCount: Int
     public var createdAt: Date
@@ -189,6 +194,8 @@ public struct SwiftlyFetchSemanticRetry: Hashable, Codable, Sendable {
     public var lastFailure: String?
 }
 ```
+
+The retry operation should distinguish semantic indexing from semantic removal. Index retries re-read the latest durable corpus record before mapping and indexing. Removal retries cannot re-read a deleted corpus record; they should retry semantic chunk cleanup by document ID and then clear any pending retry on success.
 
 Add a retry entry point:
 
@@ -199,14 +206,17 @@ public func retrySemanticIndexing(limit: Int? = nil) async throws -> SwiftlyFetc
 Retry behavior:
 
 1. Read pending retry records.
-2. Fetch the latest document record from `FetchKitLibrary`.
-3. If the document no longer exists, remove the retry.
+2. For index retries, fetch the latest document record from `FetchKitLibrary`.
+3. If an index retry's document no longer exists, remove the retry.
 4. Map the record to a semantic document.
 5. Ask `KnowledgeBase` to index it.
-6. On success, remove the retry.
-7. On failure, update attempt count, last attempt date, next retry date, and last failure.
+6. For remove retries, ask `KnowledgeBase` to remove semantic chunks for the document ID.
+7. On success, remove the retry.
+8. On failure, update attempt count, last attempt date, next retry date, and last failure.
 
 Use a simple first retry schedule. Exponential backoff can come later if real use demands it.
+
+The default in-memory constructor should use the deterministic hashing semantic backend. Do not make `SwiftlyFetchLibrary.default()` depend on Apple Natural Language assets.
 
 ## Search Surface
 
