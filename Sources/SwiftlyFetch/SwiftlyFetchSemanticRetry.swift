@@ -76,15 +76,18 @@ public actor InMemorySwiftlyFetchSemanticRetryStore: SwiftlyFetchSemanticRetrySt
 public struct SwiftlyFetchSemanticRetryResult: Hashable, Codable, Sendable {
     public var completedDocumentIDs: [FetchDocumentID]
     public var removedMissingDocumentIDs: [FetchDocumentID]
+    public var deferredDocumentIDs: [FetchDocumentID]
     public var failedRetries: [SwiftlyFetchSemanticRetry]
 
     public init(
         completedDocumentIDs: [FetchDocumentID],
         removedMissingDocumentIDs: [FetchDocumentID] = [],
+        deferredDocumentIDs: [FetchDocumentID] = [],
         failedRetries: [SwiftlyFetchSemanticRetry] = []
     ) {
         self.completedDocumentIDs = completedDocumentIDs
         self.removedMissingDocumentIDs = removedMissingDocumentIDs
+        self.deferredDocumentIDs = deferredDocumentIDs
         self.failedRetries = failedRetries
     }
 

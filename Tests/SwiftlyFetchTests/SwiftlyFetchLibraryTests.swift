@@ -98,6 +98,101 @@ struct SwiftlyFetchLibraryTests {
         #expect(semanticResults.first?.chunk.documentID == "doc-apple")
     }
 
+    @Test("Semantic retry skips records until their next retry date")
+    func semanticRetrySkipsRecordsUntilNextRetryDate() async throws {
+        let fetchLibrary = FetchKitLibrary()
+        let retryStore = InMemorySwiftlyFetchSemanticRetryStore()
+        try await fetchLibrary.addDocument(
+            FetchDocumentRecord(
+                id: "doc-due",
+                title: "Due Apple Guide",
+                body: "Due apples are bright and crisp."
+            )
+        )
+        try await fetchLibrary.addDocument(
+            FetchDocumentRecord(
+                id: "doc-deferred",
+                title: "Deferred Apple Guide",
+                body: "Deferred apples are bright and crisp."
+            )
+        )
+        try await retryStore.upsert(
+            SwiftlyFetchSemanticRetry(
+                documentID: "doc-deferred",
+                operation: .indexDocument,
+                reason: "Test deferred retry",
+                nextRetryAt: Date().addingTimeInterval(3600)
+            )
+        )
+        try await retryStore.upsert(
+            SwiftlyFetchSemanticRetry(
+                documentID: "doc-due",
+                operation: .indexDocument,
+                reason: "Test due retry",
+                nextRetryAt: Date().addingTimeInterval(-60)
+            )
+        )
+        let library = try SwiftlyFetchLibrary(
+            fetchLibrary: fetchLibrary,
+            knowledgeBase: await KnowledgeBase.hashingDefault(),
+            retryStore: retryStore
+        )
+
+        let retryResult = try await library.retrySemanticIndexing()
+        let retriesAfterRetry = try await retryStore.pendingRetries()
+
+        #expect(retryResult.completedDocumentIDs == ["doc-due"])
+        #expect(retryResult.deferredDocumentIDs == ["doc-deferred"])
+        #expect(retryResult.failedRetries.isEmpty)
+        #expect(retriesAfterRetry.map(\.documentID) == ["doc-deferred"])
+    }
+
+    @Test("Failed semantic retries wait for their next retry date")
+    func failedSemanticRetriesWaitForNextRetryDate() async throws {
+        let fetchLibrary = FetchKitLibrary()
+        let retryStore = InMemorySwiftlyFetchSemanticRetryStore()
+        try await fetchLibrary.addDocument(
+            FetchDocumentRecord(
+                id: "doc-apple",
+                title: "Apple Guide",
+                body: "Apples are bright and crisp."
+            )
+        )
+        try await retryStore.upsert(
+            SwiftlyFetchSemanticRetry(
+                documentID: "doc-apple",
+                operation: .indexDocument,
+                reason: "Test retry"
+            )
+        )
+        let library = SwiftlyFetchLibrary(
+            fetchLibrary: fetchLibrary,
+            knowledgeBase: KnowledgeBase(
+                chunker: ThrowingChunker(),
+                embedder: HashingEmbedder(),
+                index: InMemoryVectorIndex()
+            ),
+            retryStore: retryStore
+        )
+
+        let firstRetryResult = try await library.retrySemanticIndexing()
+        let retriesAfterFailure = try await retryStore.pendingRetries()
+        let retryAfterFailure = try #require(retriesAfterFailure.first)
+        let secondRetryResult = try await library.retrySemanticIndexing()
+        let retriesAfterDeferral = try await retryStore.pendingRetries()
+        let retryAfterDeferral = try #require(retriesAfterDeferral.first)
+
+        #expect(firstRetryResult.completedDocumentIDs.isEmpty)
+        #expect(firstRetryResult.failedRetries.map(\.documentID) == ["doc-apple"])
+        #expect(firstRetryResult.deferredDocumentIDs.isEmpty)
+        #expect(retryAfterFailure.attemptCount == 1)
+        #expect(retryAfterFailure.nextRetryAt != nil)
+        #expect(secondRetryResult.completedDocumentIDs.isEmpty)
+        #expect(secondRetryResult.failedRetries.isEmpty)
+        #expect(secondRetryResult.deferredDocumentIDs == ["doc-apple"])
+        #expect(retryAfterDeferral.attemptCount == 1)
+    }
+
     @Test("Semantic remove failure queues a remove retry")
     func semanticRemoveFailureQueuesRemoveRetry() async throws {
         let fetchLibrary = FetchKitLibrary()

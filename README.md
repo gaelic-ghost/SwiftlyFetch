@@ -121,6 +121,7 @@ let sideBySideResults = try await library.searchAndRetrieve(
 ```
 
 `SwiftlyFetchMutationResult` reports conventional and semantic outcomes separately. If the corpus write succeeds but semantic indexing fails, the facade queues a semantic retry instead of pretending the whole write failed.
+`retrySemanticIndexing(limit:)` respects retry cooldowns through `nextRetryAt` and reports deferred document IDs separately from completed, missing, and failed retries.
 `searchAndRetrieve(...)` returns conventional and semantic results side by side without combining scores; ranked hybrid search remains future work.
 
 For semantic retrieval, use `KnowledgeBase` from `RAGKit`:

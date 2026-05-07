@@ -311,3 +311,4 @@ Planned
 - Broadened the checked-in fixture corpus with synthetic near-miss and longer-body records, added in-memory and SearchKit parity coverage for those cases, and refined in-memory all-term ranking so compact evidence beats scattered mentions.
 - Added the first `SwiftlyFetch` umbrella facade with a document mapper, one-corpus ingestion, separate conventional and semantic mutation outcomes, semantic retry storage, and macOS persistent construction.
 - Added a TinyStories-derived mini corpus as a second checked-in text source and introduced side-by-side `SwiftlyFetchLibrary.searchAndRetrieve(...)` without ranked hybrid score mixing.
+- Tightened `SwiftlyFetchLibrary.retrySemanticIndexing(limit:)` so semantic retries respect `nextRetryAt` cooldowns and report deferred document IDs separately.

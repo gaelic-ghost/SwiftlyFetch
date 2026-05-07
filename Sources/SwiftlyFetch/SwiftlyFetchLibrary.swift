@@ -118,12 +118,23 @@ public actor SwiftlyFetchLibrary {
 
     @discardableResult
     public func retrySemanticIndexing(limit: Int? = nil) async throws -> SwiftlyFetchSemanticRetryResult {
-        let retries = try await retryStore.pendingRetries(limit: limit)
+        let retries = try await retryStore.pendingRetries(limit: nil)
+        var dueRetries: [SwiftlyFetchSemanticRetry] = []
         var completedDocumentIDs: [FetchDocumentID] = []
         var removedMissingDocumentIDs: [FetchDocumentID] = []
+        var deferredDocumentIDs: [FetchDocumentID] = []
         var failedRetries: [SwiftlyFetchSemanticRetry] = []
+        let now = Date()
 
         for retry in retries {
+            if let nextRetryAt = retry.nextRetryAt, nextRetryAt > now {
+                deferredDocumentIDs.append(retry.documentID)
+            } else if limit.map({ dueRetries.count < max(0, $0) }) ?? true {
+                dueRetries.append(retry)
+            }
+        }
+
+        for retry in dueRetries {
             do {
                 switch retry.operation {
                     case .indexDocument:
@@ -150,6 +161,7 @@ public actor SwiftlyFetchLibrary {
         return SwiftlyFetchSemanticRetryResult(
             completedDocumentIDs: uniqueDocumentIDs(completedDocumentIDs),
             removedMissingDocumentIDs: uniqueDocumentIDs(removedMissingDocumentIDs),
+            deferredDocumentIDs: uniqueDocumentIDs(deferredDocumentIDs),
             failedRetries: failedRetries
         )
     }

@@ -206,13 +206,14 @@ public func retrySemanticIndexing(limit: Int? = nil) async throws -> SwiftlyFetc
 Retry behavior:
 
 1. Read pending retry records.
-2. For index retries, fetch the latest document record from `FetchKitLibrary`.
-3. If an index retry's document no longer exists, remove the retry.
-4. Map the record to a semantic document.
-5. Ask `KnowledgeBase` to index it.
-6. For remove retries, ask `KnowledgeBase` to remove semantic chunks for the document ID.
-7. On success, remove the retry.
-8. On failure, update attempt count, last attempt date, next retry date, and last failure.
+2. Defer records whose `nextRetryAt` is still in the future.
+3. For index retries, fetch the latest document record from `FetchKitLibrary`.
+4. If an index retry's document no longer exists, remove the retry.
+5. Map the record to a semantic document.
+6. Ask `KnowledgeBase` to index it.
+7. For remove retries, ask `KnowledgeBase` to remove semantic chunks for the document ID.
+8. On success, remove the retry.
+9. On failure, update attempt count, last attempt date, next retry date, and last failure.
 
 Use a simple first retry schedule. Exponential backoff can come later if real use demands it.
 
