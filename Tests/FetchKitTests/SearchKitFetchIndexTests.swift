@@ -1,10 +1,15 @@
 #if os(macOS)
-import Foundation
-import XCTest
 import FetchCore
 @testable import FetchKit
+import Foundation
+import SwiftlyFetchTestFixtures
+import XCTest
 
 final class SearchKitFetchIndexTests: XCTestCase {
+    private var fixtureRecords: [FetchDocumentRecord] {
+        GutenbergMiniCorpus.records + TinyStoriesMiniCorpus.records
+    }
+
     func testSearchKitFetchIndexIndexesAndSearchesText() async throws {
         let index = try SearchKitFetchIndex(
             configuration: .init(
@@ -212,7 +217,7 @@ final class SearchKitFetchIndexTests: XCTestCase {
 
         try await index.apply(
             FetchIndexingChangeset(
-                GutenbergMiniCorpus.records.map { .upsert($0.indexDocument) }
+                fixtureRecords.map { .upsert($0.indexDocument) }
             )
         )
 
@@ -247,7 +252,7 @@ final class SearchKitFetchIndexTests: XCTestCase {
 
         try await index.apply(
             FetchIndexingChangeset(
-                GutenbergMiniCorpus.records.map { .upsert($0.indexDocument) }
+                fixtureRecords.map { .upsert($0.indexDocument) }
             )
         )
 
@@ -270,6 +275,29 @@ final class SearchKitFetchIndexTests: XCTestCase {
         XCTAssertEqual(longBodyResults.first?.snippet?.text.hasPrefix("…"), true)
         XCTAssertEqual(longBodyResults.first?.snippet?.text.hasSuffix("…"), true)
         XCTAssertEqual(longBodyResults.first?.snippetField, .body)
+    }
+
+    func testSearchKitFetchIndexMatchesSecondFixtureCorpusSource() async throws {
+        let index = try SearchKitFetchIndex(
+            configuration: .init(
+                storage: .inMemory,
+                indexNamePrefix: "SearchKitFetchIndexTests-\(UUID().uuidString)"
+            )
+        )
+
+        try await index.apply(
+            FetchIndexingChangeset(
+                fixtureRecords.map { .upsert($0.indexDocument) }
+            )
+        )
+
+        let results = try await index.search(
+            FetchSearchQuery("needle sew shirt", kind: .allTerms, fields: [.title, .body], limit: 4)
+        )
+
+        XCTAssertEqual(results.first?.document.id, "tinystories-row-0-needle")
+        XCTAssertEqual(results.first?.matchedFields.contains(.body), true)
+        XCTAssertEqual(results.first?.snippet?.text.localizedCaseInsensitiveContains("needle"), true)
     }
 
     func testFetchKitLibraryBuildsPersistentPair() async throws {

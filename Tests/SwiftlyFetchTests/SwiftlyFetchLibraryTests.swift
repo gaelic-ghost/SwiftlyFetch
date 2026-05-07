@@ -4,6 +4,7 @@ import Foundation
 import RAGCore
 import RAGKit
 import SwiftlyFetch
+import SwiftlyFetchTestFixtures
 import Testing
 
 @Suite(.serialized)
@@ -149,6 +150,35 @@ struct SwiftlyFetchLibraryTests {
         #expect(retries.isEmpty)
     }
 
+    @Test("Facade returns conventional and semantic corpus results side by side")
+    func facadeReturnsConventionalAndSemanticCorpusResultsSideBySide() async throws {
+        let library = try await indexedFixtureLibrary()
+
+        let botanyResult = try await library.searchAndRetrieve(
+            conventional: FetchSearchQuery(
+                "storage food seeds",
+                kind: .allTerms,
+                fields: [.body],
+                limit: 3
+            ),
+            semantic: SearchQuery("food stored inside seeds for growing plants", limit: 3)
+        )
+        let storyResult = try await library.searchAndRetrieve(
+            conventional: FetchSearchQuery(
+                "needle sew shirt",
+                kind: .allTerms,
+                fields: [.title, .body],
+                limit: 3
+            ),
+            semantic: SearchQuery("a child and mother fix a shirt with a needle", limit: 3)
+        )
+
+        #expect(botanyResult.conventional.first?.document.id == "gutenberg-78430-chapter-1")
+        #expect(botanyResult.semantic.map(\.chunk.documentID).contains("gutenberg-78430-chapter-1"))
+        #expect(storyResult.conventional.first?.document.id == "tinystories-row-0-needle")
+        #expect(storyResult.semantic.map(\.chunk.documentID).contains("tinystories-row-0-needle"))
+    }
+
 #if os(macOS)
     @Test("Persistent facade reopens conventional and semantic state")
     func persistentFacadeReopensConventionalAndSemanticState() async throws {
@@ -174,6 +204,16 @@ struct SwiftlyFetchLibraryTests {
         #expect(semanticResults.first?.chunk.documentID == "doc-apple")
     }
 #endif
+}
+
+private func indexedFixtureLibrary() async throws -> SwiftlyFetchLibrary {
+    let library = try await SwiftlyFetchLibrary.default()
+
+    for record in GutenbergMiniCorpus.records + TinyStoriesMiniCorpus.records {
+        try await library.addDocument(record)
+    }
+
+    return library
 }
 
 private struct ThrowingChunker: Chunker {

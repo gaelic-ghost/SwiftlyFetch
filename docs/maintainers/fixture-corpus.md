@@ -18,7 +18,9 @@ Why this source fits the first pass:
 - the `chapters` config has chapter titles and chapter text, which is a useful shape for document-search quality tests
 - the corpus can be inspected through the Hugging Face Dataset Viewer APIs without adding a Swift dependency
 
-The fixture records live in `Tests/FetchKitTests/Fixtures/GutenbergMiniCorpus.swift`. Each source-derived record carries dataset, config, split, row, and Gutenberg ID metadata so the sample remains attributable and replaceable. The fixture also includes small synthetic near-miss and longer-body records derived from the same topic shape. Those synthetic records exist to stress ranking and snippet selection without expanding the checked-in corpus into a large text dump.
+The second source-derived mini corpus is derived from the [`roneneldan/TinyStories`](https://huggingface.co/datasets/roneneldan/TinyStories) dataset on Hugging Face. TinyStories is useful here because its rows are short synthetic English stories, so the fixture can add a second text source without adding long copyrighted excerpts or a live dataset download to ordinary tests. The dataset card identifies the corpus as synthetic GPT-3.5/GPT-4-generated stories and tags it with `license:cdla-sharing-1.0`.
+
+The shared fixture records live in `Tests/SwiftlyFetchTestFixtures/`. Each source-derived record carries dataset, config, split, row, and source metadata so the sample remains attributable and replaceable. `GutenbergMiniCorpus` also includes small synthetic near-miss and longer-body records derived from the same topic shape. Those synthetic records exist to stress ranking and snippet selection without expanding the checked-in corpus into a large text dump.
 
 Current synthetic records:
 
@@ -38,6 +40,8 @@ In practical terms, simple result lists can keep rendering a snippet for every e
 
 The second fixture pass added a compact-evidence ranking expectation for the default in-memory path. For `allTerms` search, a document that places all terms close together should beat a near-miss that satisfies the same terms only through scattered mentions. That keeps the default backend closer to what an app user means by "this result is about my query" without turning `FetchCore` into a larger ranking DSL.
 
+The third fixture pass moved source-derived records into a shared test fixture target and added TinyStories micro-records. Corpus-based tests now have at least two attributed text sources available: one public-domain Gutenberg-derived source and one synthetic story source.
+
 ## Hugging Face Dependency Boundary
 
 Do not add a Hugging Face Swift dependency for the default fixture lane yet. The current checked-in fixture keeps CI deterministic and avoids adding a network, token, cache, or package-resolution requirement to ordinary tests.
@@ -54,6 +58,8 @@ The fixture was inspected with read-only Dataset Viewer calls:
 curl -s 'https://datasets-server.huggingface.co/splits?dataset=zkeown/gutenberg-corpus'
 curl -s 'https://datasets-server.huggingface.co/rows?dataset=zkeown/gutenberg-corpus&config=books&split=train&offset=1&length=5'
 curl -s 'https://datasets-server.huggingface.co/rows?dataset=zkeown/gutenberg-corpus&config=chapters&split=train&offset=1&length=3'
+curl -s 'https://datasets-server.huggingface.co/splits?dataset=roneneldan/TinyStories'
+curl -s 'https://datasets-server.huggingface.co/first-rows?dataset=roneneldan/TinyStories&config=default&split=train'
 ```
 
 Hugging Face documents dataset parquet discovery through the Dataset Viewer service in the [`huggingface_hub` CLI guide](https://huggingface.co/docs/huggingface_hub/guides/cli) and the Dataset Viewer [Parquet conversion guide](https://huggingface.co/docs/dataset-viewer/parquet).

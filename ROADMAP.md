@@ -189,6 +189,7 @@ In Progress
 - [x] Decide that title-only hits should keep title snippets while exposing `matchedFields` and `snippetField` so consumers can distinguish title evidence from body evidence.
 - [x] Add broader fixture-corpus pressure for near-miss all-term ranking and longer-body snippet selection across the default in-memory path and the macOS SearchKit-backed path.
 - [x] Refine the default in-memory all-term ranker so tighter evidence beats scattered term mentions instead of falling through to document ID tie-breaking.
+- [x] Add a second checked-in text source for corpus-based tests so fixture coverage is not only Gutenberg-derived.
 - [ ] Audit larger app-like corpus result quality now that field-aware ranking, compact all-term evidence, phrase weighting, truncation cues, multi-term snippets, and field-evidence metadata are in place.
 - [ ] Keep the persistent `FetchKitLibrary` construction and search API surface under review as real callers exercise the current design.
 - [ ] Explore an opt-in extended snippet surface that can use idle time to precompute short document summaries for larger records, with Apple's [`FoundationModels`](https://developer.apple.com/documentation/foundationmodels) or another local summarization path as the first candidate instead of making foreground full-text search wait on summarization.
@@ -260,7 +261,7 @@ Planned
 - [ ] If parser-backed markdown chunking still leaves retrieval-quality gaps, add retrieval-specific chunking heuristics on top of the chosen markdown parser instead of rebuilding markdown parsing rules locally.
 - [ ] If asset-backed automation becomes important again, evaluate a self-hosted macOS runner with prewarmed assets before retrying a hosted GitHub Actions lane.
 - [ ] Consider a follow-on conventional-search quality pass only if real corpora show ranking, snippet, or result-presentation gaps beyond the current field-aware heuristics.
-- [ ] Evaluate whether fixture-corpus coverage should grow through additional checked-in micro-records, generated local fixtures, or an opt-in live dataset lane before adopting a Swift Hub dependency.
+- [ ] Revisit fixture-corpus growth only if real result-quality gaps show that the current Gutenberg plus TinyStories micro-records are too narrow.
 
 ## History
 
@@ -309,3 +310,4 @@ Planned
 - Opened the next roadmap phase around SearchKit/Natural Language verification strategy, iOS conventional-search backend direction, and another caller-driven `FetchKitLibrary` polish pass if real usage shows it is needed.
 - Broadened the checked-in fixture corpus with synthetic near-miss and longer-body records, added in-memory and SearchKit parity coverage for those cases, and refined in-memory all-term ranking so compact evidence beats scattered mentions.
 - Added the first `SwiftlyFetch` umbrella facade with a document mapper, one-corpus ingestion, separate conventional and semantic mutation outcomes, semantic retry storage, and macOS persistent construction.
+- Added a TinyStories-derived mini corpus as a second checked-in text source and introduced side-by-side `SwiftlyFetchLibrary.searchAndRetrieve(...)` without ranked hybrid score mixing.

@@ -234,6 +234,8 @@ Once one-corpus ingestion and retry are stable, add either:
 
 Side-by-side should be the first hybrid experiment unless a concrete caller needs one ranked list immediately.
 
+The first side-by-side API should be named `searchAndRetrieve` rather than `hybridSearch`. Reserve `hybridSearch` for a later ranked API with an explicit score-combination policy.
+
 ## First Implementation Slices
 
 ### Slice 1: Package Surface And Mapping
@@ -273,7 +275,8 @@ Side-by-side should be the first hybrid experiment unless a concrete caller need
 
 - Inspect the first facade result behavior against a small corpus.
 - Decide whether the first hybrid response should be side-by-side or ranked.
-- Add hybrid search only after the ingestion and retry model is stable.
+- Add side-by-side `searchAndRetrieve` after the ingestion and retry model is stable.
+- Keep ranked `hybridSearch` out of this slice.
 
 ## Definition Of Done For First Facade Milestone
 

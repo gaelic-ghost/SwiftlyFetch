@@ -114,9 +114,14 @@ let mutation = try await library.addDocument(
 
 let conventionalResults = try await library.search(FetchSearchQuery("apple guide"))
 let semanticResults = try await library.retrieve(SearchQuery("bright crisp"))
+let sideBySideResults = try await library.searchAndRetrieve(
+    conventional: FetchSearchQuery("apple guide"),
+    semantic: SearchQuery("bright crisp")
+)
 ```
 
 `SwiftlyFetchMutationResult` reports conventional and semantic outcomes separately. If the corpus write succeeds but semantic indexing fails, the facade queues a semantic retry instead of pretending the whole write failed.
+`searchAndRetrieve(...)` returns conventional and semantic results side by side without combining scores; ranked hybrid search remains future work.
 
 For semantic retrieval, use `KnowledgeBase` from `RAGKit`:
 

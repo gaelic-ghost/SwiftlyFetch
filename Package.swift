@@ -61,6 +61,11 @@ let package = Package(
                 "RAGKit",
             ]
         ),
+        .target(
+            name: "SwiftlyFetchTestFixtures",
+            dependencies: ["FetchCore"],
+            path: "Tests/SwiftlyFetchTestFixtures"
+        ),
         .testTarget(
             name: "RAGCoreTests",
             dependencies: ["RAGCore"]
@@ -71,7 +76,7 @@ let package = Package(
         ),
         .testTarget(
             name: "FetchKitTests",
-            dependencies: ["FetchKit", "FetchCore"]
+            dependencies: ["FetchKit", "FetchCore", "SwiftlyFetchTestFixtures"]
         ),
         .testTarget(
             name: "RAGKitTests",
@@ -83,7 +88,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftlyFetchTests",
-            dependencies: ["SwiftlyFetch", "FetchCore", "RAGCore", "RAGKit"]
+            dependencies: ["SwiftlyFetch", "FetchCore", "RAGCore", "RAGKit", "SwiftlyFetchTestFixtures"]
         ),
     ],
     swiftLanguageModes: [.v6]

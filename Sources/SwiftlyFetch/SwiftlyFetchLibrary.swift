@@ -92,6 +92,30 @@ public actor SwiftlyFetchLibrary {
         try await knowledgeBase.search(query)
     }
 
+    public func searchAndRetrieve(
+        _ query: SwiftlyFetchSearchAndRetrieveQuery
+    ) async throws -> SwiftlyFetchSearchAndRetrieveResult {
+        let conventionalResults = try await search(query.conventional)
+        let semanticResults = try await retrieve(query.semantic)
+
+        return SwiftlyFetchSearchAndRetrieveResult(
+            conventional: conventionalResults,
+            semantic: semanticResults
+        )
+    }
+
+    public func searchAndRetrieve(
+        conventional conventionalQuery: FetchSearchQuery,
+        semantic semanticQuery: SearchQuery
+    ) async throws -> SwiftlyFetchSearchAndRetrieveResult {
+        try await searchAndRetrieve(
+            SwiftlyFetchSearchAndRetrieveQuery(
+                conventional: conventionalQuery,
+                semantic: semanticQuery
+            )
+        )
+    }
+
     @discardableResult
     public func retrySemanticIndexing(limit: Int? = nil) async throws -> SwiftlyFetchSemanticRetryResult {
         let retries = try await retryStore.pendingRetries(limit: limit)
