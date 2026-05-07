@@ -57,10 +57,10 @@ public actor SwiftlyFetchLibrary {
             try await knowledgeBase.removeDocument(semanticDocumentID)
             try await retryStore.removeRetries(for: [id])
 
-            return try SwiftlyFetchMutationResult(
+            return SwiftlyFetchMutationResult(
                 documentIDs: conventionalResult.documentIDs,
                 conventional: .succeeded,
-                semantic: .succeeded(state: await semanticIndexState(for: id))
+                semantic: .succeeded(state: await bestEffortSemanticIndexState(for: id))
             )
         } catch {
             let retry = SwiftlyFetchSemanticRetry(
@@ -71,12 +71,12 @@ public actor SwiftlyFetchLibrary {
             )
             try await retryStore.upsert(retry)
 
-            return try SwiftlyFetchMutationResult(
+            return SwiftlyFetchMutationResult(
                 documentIDs: conventionalResult.documentIDs,
                 conventional: .succeeded,
                 semantic: SwiftlyFetchSemanticMutationStage(
                     status: .queuedRetry,
-                    state: await semanticIndexState(for: id),
+                    state: await bestEffortSemanticIndexState(for: id),
                     retry: retry,
                     failureDescription: retry.lastFailure
                 )
@@ -164,10 +164,10 @@ public actor SwiftlyFetchLibrary {
             try await knowledgeBase.addDocument(documentMapper.document(from: storedRecord))
             try await retryStore.removeRetries(for: [record.id])
 
-            return try SwiftlyFetchMutationResult(
+            return SwiftlyFetchMutationResult(
                 documentIDs: conventionalResult.documentIDs,
                 conventional: .succeeded,
-                semantic: .succeeded(state: await semanticIndexState(for: record.id))
+                semantic: .succeeded(state: await bestEffortSemanticIndexState(for: record.id))
             )
         } catch {
             let retry = SwiftlyFetchSemanticRetry(
@@ -178,12 +178,12 @@ public actor SwiftlyFetchLibrary {
             )
             try await retryStore.upsert(retry)
 
-            return try SwiftlyFetchMutationResult(
+            return SwiftlyFetchMutationResult(
                 documentIDs: conventionalResult.documentIDs,
                 conventional: .succeeded,
                 semantic: SwiftlyFetchSemanticMutationStage(
                     status: .queuedRetry,
-                    state: await semanticIndexState(for: record.id),
+                    state: await bestEffortSemanticIndexState(for: record.id),
                     retry: retry,
                     failureDescription: retry.lastFailure
                 )
@@ -195,6 +195,10 @@ public actor SwiftlyFetchLibrary {
         try await knowledgeBase.semanticIndexState(
             for: documentMapper.documentID(for: fetchDocumentID)
         )
+    }
+
+    private func bestEffortSemanticIndexState(for fetchDocumentID: FetchDocumentID) async -> SemanticIndexState? {
+        try? await semanticIndexState(for: fetchDocumentID)
     }
 
     private func failedSemanticRetry(

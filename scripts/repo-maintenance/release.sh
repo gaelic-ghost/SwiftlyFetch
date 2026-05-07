@@ -126,15 +126,15 @@ ensure_branch_release_context() {
 run_version_bump() {
   release_version="${RELEASE_TAG#v}"
   version_bump_script="$SELF_DIR/version-bump.sh"
-  head_subject="$(git -C "$REPO_ROOT" log -1 --format=%s 2>/dev/null || true)"
+  version_bump_subject="release: bump versions for $RELEASE_TAG"
 
   if [ "$skip_version_bump" = "true" ]; then
     log "Skipping repo version bump because --skip-version-bump was requested."
     return 0
   fi
 
-  if [ "$head_subject" = "release: bump versions for $RELEASE_TAG" ]; then
-    log "Version bump commit for $RELEASE_TAG is already at HEAD; continuing the release resume path."
+  if git -C "$REPO_ROOT" log --format=%s "$base_branch"..HEAD | grep -Fxq "$version_bump_subject"; then
+    log "Version bump commit for $RELEASE_TAG is already on this branch; continuing the release resume path."
     return 0
   fi
 

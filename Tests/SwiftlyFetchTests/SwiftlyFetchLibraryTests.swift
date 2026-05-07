@@ -127,6 +127,36 @@ struct SwiftlyFetchLibraryTests {
         #expect(retries.first?.operation == .removeDocument)
     }
 
+    @Test("Semantic state read failures do not queue semantic retries")
+    func semanticStateReadFailuresDoNotQueueRetries() async throws {
+        let fetchLibrary = FetchKitLibrary()
+        let retryStore = InMemorySwiftlyFetchSemanticRetryStore()
+        let library = SwiftlyFetchLibrary(
+            fetchLibrary: fetchLibrary,
+            knowledgeBase: KnowledgeBase(
+                chunker: DefaultChunker(),
+                embedder: HashingEmbedder(),
+                index: StateReadFailingVectorIndex()
+            ),
+            retryStore: retryStore
+        )
+        let record = FetchDocumentRecord(
+            id: "doc-apple",
+            title: "Apple Guide",
+            body: "Apples are bright and crisp."
+        )
+
+        let addMutation = try await library.addDocument(record)
+        let removeMutation = try await library.removeDocument(withID: "doc-apple")
+        let retries = try await retryStore.pendingRetries()
+
+        #expect(addMutation.semantic.status == .succeeded)
+        #expect(addMutation.semantic.state == nil)
+        #expect(removeMutation.semantic.status == .succeeded)
+        #expect(removeMutation.semantic.state == nil)
+        #expect(retries.isEmpty)
+    }
+
     @Test("Retry removes missing index retries")
     func retryRemovesMissingIndexRetries() async throws {
         let retryStore = InMemorySwiftlyFetchSemanticRetryStore()
@@ -203,6 +233,65 @@ struct SwiftlyFetchLibraryTests {
         #expect(conventionalResults.first?.document.id == "doc-apple")
         #expect(semanticResults.first?.chunk.documentID == "doc-apple")
     }
+
+    @Test("Core Data semantic retry store reopens pending retries")
+    func coreDataSemanticRetryStoreReopensPendingRetries() async throws {
+        let directory = try temporaryDirectory()
+        let storeURL = directory.appendingPathComponent("SemanticRetries.sqlite")
+        let olderDate = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 1, day: 1)))
+        let newerDate = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 1, day: 2)))
+
+        do {
+            let store = try await CoreDataSwiftlyFetchSemanticRetryStore(
+                configuration: .init(store: .sqlite(storeURL))
+            )
+            try await store.upsert(
+                SwiftlyFetchSemanticRetry(
+                    documentID: "doc-newer",
+                    operation: .removeDocument,
+                    reason: "Test persisted remove retry",
+                    attemptCount: 2,
+                    createdAt: newerDate,
+                    lastAttemptAt: newerDate,
+                    nextRetryAt: newerDate.addingTimeInterval(60),
+                    lastFailure: "Test remove failed."
+                )
+            )
+            try await store.upsert(
+                SwiftlyFetchSemanticRetry(
+                    documentID: "doc-older",
+                    operation: .indexDocument,
+                    reason: "Test persisted index retry",
+                    createdAt: olderDate,
+                    lastFailure: "Test indexing failed."
+                )
+            )
+        }
+
+        let reopenedStore = try await CoreDataSwiftlyFetchSemanticRetryStore(
+            configuration: .init(store: .sqlite(storeURL))
+        )
+        let pendingRetries = try await reopenedStore.pendingRetries()
+        let limitedRetries = try await reopenedStore.pendingRetries(limit: 1)
+
+        #expect(pendingRetries.map(\.documentID) == ["doc-older", "doc-newer"])
+        #expect(pendingRetries.first?.operation == .indexDocument)
+        #expect(pendingRetries.first?.reason == "Test persisted index retry")
+        #expect(pendingRetries.first?.lastFailure == "Test indexing failed.")
+        #expect(pendingRetries.last?.operation == .removeDocument)
+        #expect(pendingRetries.last?.attemptCount == 2)
+        #expect(pendingRetries.last?.lastFailure == "Test remove failed.")
+        #expect(limitedRetries.map(\.documentID) == ["doc-older"])
+
+        try await reopenedStore.removeRetries(for: ["doc-older"])
+
+        let finalStore = try await CoreDataSwiftlyFetchSemanticRetryStore(
+            configuration: .init(store: .sqlite(storeURL))
+        )
+        let finalRetries = try await finalStore.pendingRetries()
+
+        #expect(finalRetries.map(\.documentID) == ["doc-newer"])
+    }
 #endif
 }
 
@@ -236,9 +325,52 @@ private actor RemoveFailingVectorIndex: VectorIndex {
     func removeAll() async throws {}
 }
 
+private actor StateReadFailingVectorIndex: VectorIndex, SemanticIndexStateStore {
+    private var chunksByDocumentID: [DocumentID: [IndexedChunk]] = [:]
+
+    func upsert(_ chunks: [IndexedChunk]) async throws {
+        for chunk in chunks {
+            chunksByDocumentID[chunk.chunk.documentID, default: []].append(chunk)
+        }
+    }
+
+    func search(_ query: SearchQuery, embedding: EmbeddingVector) async throws -> [SearchResult] {
+        []
+    }
+
+    func removeChunks(for documentID: DocumentID) async throws {
+        chunksByDocumentID[documentID] = nil
+    }
+
+    func removeAll() async throws {
+        chunksByDocumentID.removeAll()
+    }
+
+    func state(for documentID: DocumentID) async throws -> SemanticIndexState? {
+        throw TestFailure.semanticStateReadFailed
+    }
+
+    func states(for documentIDs: [DocumentID]) async throws -> [SemanticIndexState] {
+        throw TestFailure.semanticStateReadFailed
+    }
+
+    func markIndexing(documentID: DocumentID, fingerprint: SemanticIndexFingerprint) async throws {}
+
+    func markCurrent(documentID: DocumentID, fingerprint: SemanticIndexFingerprint) async throws {}
+
+    func markStale(documentID: DocumentID, reason: String?) async throws {}
+
+    func markFailed(
+        documentID: DocumentID,
+        fingerprint: SemanticIndexFingerprint?,
+        reason: String
+    ) async throws {}
+}
+
 private enum TestFailure: Error, CustomStringConvertible {
     case chunkingFailed
     case semanticRemoveFailed
+    case semanticStateReadFailed
 
     var description: String {
         switch self {
@@ -246,6 +378,8 @@ private enum TestFailure: Error, CustomStringConvertible {
                 "Test chunker intentionally failed while building semantic chunks."
             case .semanticRemoveFailed:
                 "Test vector index intentionally failed while removing semantic chunks."
+            case .semanticStateReadFailed:
+                "Test semantic index state store intentionally failed while reading state."
         }
     }
 }
