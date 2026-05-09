@@ -39,7 +39,19 @@ SwiftlyFetch is not a chat framework, LLM SDK, agent runtime, or remote-provider
 
 ## Quick Start
 
-The package is still early, but the retrieval surface is real enough to try locally. For the coordinated corpus surface, import `SwiftlyFetch`:
+Add SwiftlyFetch to your `Package.swift` dependencies:
+
+```swift
+.package(url: "https://github.com/gaelic-ghost/SwiftlyFetch", from: "x.x.x"),
+```
+
+Then add the library product to your target dependencies:
+
+```swift
+.product(name: "SwiftlyFetch", package: "SwiftlyFetch"),
+```
+
+The package is still a bit early, but the retrieval surface is real enough to try locally. For the coordinated corpus surface, import `SwiftlyFetch`:
 
 ```swift
 import FetchCore
