@@ -1,8 +1,9 @@
 import FetchCore
-import Testing
 @testable import FetchKit
+import SwiftlyFetchTestFixtures
+import Testing
 
-@Suite("FetchKit fixture corpus quality", .serialized)
+@Suite(.serialized)
 struct FixtureCorpusQualityTests {
     @Test("Fixture corpus records carry source attribution")
     func fixtureCorpusRecordsCarrySourceAttribution() {
@@ -11,6 +12,11 @@ struct FixtureCorpusQualityTests {
         #expect(GutenbergMiniCorpus.source.split == "train")
         #expect(GutenbergMiniCorpus.records.allSatisfy { $0.sourceURI == GutenbergMiniCorpus.source.url })
         #expect(GutenbergMiniCorpus.records.allSatisfy { $0.metadata["fixture.dataset"] == GutenbergMiniCorpus.source.datasetID })
+        #expect(TinyStoriesMiniCorpus.source.datasetID == "roneneldan/TinyStories")
+        #expect(TinyStoriesMiniCorpus.source.config == "default")
+        #expect(TinyStoriesMiniCorpus.source.split == "train")
+        #expect(TinyStoriesMiniCorpus.records.allSatisfy { $0.sourceURI == TinyStoriesMiniCorpus.source.url })
+        #expect(TinyStoriesMiniCorpus.records.allSatisfy { $0.metadata["fixture.dataset"] == TinyStoriesMiniCorpus.source.datasetID })
     }
 
     @Test("Fixture corpus retrieves a body-driven chapter hit")
@@ -117,9 +123,32 @@ struct FixtureCorpusQualityTests {
         #expect(firstResult.snippetField == .body)
     }
 
+    @Test("Fixture corpus includes a second text source for simple story searches")
+    func fixtureCorpusIncludesSecondTextSource() async throws {
+        let library = try await indexedFixtureLibrary()
+
+        let sewingResults = try await library.search(
+            "needle sew shirt",
+            kind: .allTerms,
+            fields: [.title, .body],
+            limit: 4
+        )
+        let fuelResults = try await library.search(
+            "healthy fuel car",
+            kind: .allTerms,
+            fields: [.title, .body],
+            limit: 4
+        )
+
+        #expect(sewingResults.first?.document.id == "tinystories-row-0-needle")
+        #expect(sewingResults.first?.snippet?.text.localizedCaseInsensitiveContains("needle") == true)
+        #expect(fuelResults.first?.document.id == "tinystories-row-1-beep")
+        #expect(fuelResults.first?.matchedFields.contains(.body) == true)
+    }
+
     private func indexedFixtureLibrary() async throws -> FetchKitLibrary {
         let library = FetchKitLibrary()
-        try await library.addDocuments(GutenbergMiniCorpus.records)
+        try await library.addDocuments(GutenbergMiniCorpus.records + TinyStoriesMiniCorpus.records)
         return library
     }
 }

@@ -1,6 +1,6 @@
 # SwiftlyFetch
 
-An Apple-first Swift Package family for local document search and semantic retrieval.
+Apple-first local search and semantic retrieval for Swift apps.
 
 ## Table of Contents
 
@@ -13,34 +13,69 @@ An Apple-first Swift Package family for local document search and semantic retri
 
 ## Overview
 
-### Status
+SwiftlyFetch is a Swift package family for apps that need to index local documents, search them, and assemble useful retrieval context without sending the job to a remote service. The current package is early, but useful: it ships semantic retrieval through `RAGCore` and `RAGKit`, conventional search through `FetchCore` and `FetchKit`, and the first umbrella `SwiftlyFetch` facade for one-corpus ingestion.
 
-`v0.1.2` is the current tagged package release and is stable enough to try locally.
+Use SwiftlyFetch when you want:
 
-### What This Project Is
+- local semantic retrieval over plain text and markdown
+- deterministic hashing embeddings for tests, previews, and examples
+- Apple Natural Language embeddings on supported Apple platforms
+- persistent semantic chunks and embeddings through Core Data
+- coordinated one-corpus ingestion through `SwiftlyFetchLibrary`
+- conventional document search with title/body evidence, query-aware snippets, and a macOS SearchKit-backed index path
+- one package family that keeps retrieval, indexing, and context assembly separate from chat, generation, agents, and remote-provider workflows
 
-SwiftlyFetch is the umbrella product direction for a small family of Apple-first local search packages. The product goal is simple: hand the system a local corpus and get back a real search engine, with conventional search and semantic retrieval both living under one coherent Swift-native story. In practical terms, SwiftlyFetch is the family for "drop in a corpus, get back local search," with `FetchKit` covering conventional full-document search and `RAGKit` covering semantic retrieval over the same broader corpus model.
+The package family is intentionally split by job:
 
-Today, the package exposes shipped semantic retrieval work through `RAGCore` and `RAGKit`, plus the first conventional-search foundation through `FetchCore` and `FetchKit`. `FetchCore` now owns the portable conventional-search vocabulary, the durable document-record model, and the indexing-changeset boundary. That record model carries first-class typed lifecycle and source fields like `kind`, `language`, `createdAt`, `updatedAt`, `sourceURI`, and `lastIndexedAt`, while leaving the freeform metadata bag string-based. `FetchCore` also distinguishes between the durable stored record, the lean search-facing document view, and the richer index-facing payload used by the sync boundary. `FetchKitLibrary` now supports a default in-memory construction path, and `FetchKit` includes a Core Data-backed `FetchDocumentStore`, a persisted pending-sync queue, and the first thin macOS SearchKit-backed index. Conventional-search results carry field evidence through `matchedFields` and `snippetField`, so UI code can tell whether a result matched title text, body text, or both. The default in-memory search path now also rewards tighter all-term evidence, so a focused passage can rank ahead of a scattered near-miss instead of relying on document ID tie-breaking.
+- `RAGCore` defines semantic retrieval vocabulary.
+- `RAGKit` provides the default semantic retrieval implementation and `KnowledgeBase` actor.
+- `FetchCore` defines portable conventional-search models.
+- `FetchKit` provides the first conventional-search facade, Core Data document storage, pending index-sync tracking, and a macOS SearchKit backend.
+- `SwiftlyFetch` composes both sibling package families so callers can add a document once, then use conventional search and semantic retrieval over the same corpus.
 
-The intended family split is:
+SwiftlyFetch has tagged releases stable enough to try locally, and the umbrella `SwiftlyFetch` surface is available in the current codebase. See GitHub Releases for the latest published version details.
 
-- `RAGKit` for semantic retrieval, knowledge-base assembly, and the retrieval-quality chunking, embedding, and indexing work that supports that job
-- `FetchCore` for the portable document-search vocabulary that will stay backend-agnostic as `FetchKit` grows
-- `FetchKit` for traditional search, with `FetchKitLibrary` as the first public facade and Core Data plus SearchKit as the intended Apple implementation model
-- `SwiftlyFetch` as the umbrella story tying those sibling package surfaces together over time
-
-That intended split does not change the current package boundary: `RAGKit` still owns semantic retrieval work, not conventional document search. The next family step is caller-driven polish, not first existence: keep conventional-search result quality under pressure with fixture and app corpora, keep the persistent library surface polished, and continue making it realistic for one local corpus to support both traditional search and semantic retrieval without forcing those jobs into one module.
-
-Platform-wise, the family target is still "macOS and iOS are both first-class," but the first concrete full-text backend is intentionally macOS-first. Apple documents Search Kit as a Mac app indexing and search framework, while Core Spotlight is the more obvious Apple-side indexing/search direction for iOS later. That means the current plan is not to pretend one backend fits both platforms immediately. Instead, `FetchCore` stays portable, `FetchKit` starts with the honest macOS path, and iOS remains a first-class family target through a future sibling backend rather than through fake cross-platform wording.
-
-### Motivation
-
-The goal is to make local search feel native and pleasant in Swift apps without turning the package into a chat framework or a giant AI abstraction layer.
+SwiftlyFetch is not a chat framework, LLM SDK, agent runtime, or remote-provider abstraction. Its job is local retrieval: document preparation, indexing, search, filtering, and context assembly.
 
 ## Quick Start
 
-The package is still early, but the retrieval surface is real enough to try locally:
+Add SwiftlyFetch to your `Package.swift` dependencies:
+
+```swift
+.package(url: "https://github.com/gaelic-ghost/SwiftlyFetch", from: "0.2.0"),
+```
+
+Then add the library product to your target dependencies:
+
+```swift
+.product(name: "SwiftlyFetch", package: "SwiftlyFetch"),
+```
+
+The package is still a bit early, but the retrieval surface is real enough to try locally. For the coordinated corpus surface, import `SwiftlyFetch`:
+
+```swift
+import FetchCore
+import RAGCore
+import SwiftlyFetch
+
+let library = try await SwiftlyFetchLibrary.default()
+
+try await library.addDocument(
+    FetchDocumentRecord(
+        id: "guide",
+        title: "Fruit Guide",
+        body: "Apples are bright and crisp.",
+        contentType: .markdown,
+        kind: .guide,
+        language: "en"
+    )
+)
+
+let searchResults = try await library.search(FetchSearchQuery("fruit guide"))
+let semanticResults = try await library.retrieve(SearchQuery("bright fruit"))
+```
+
+For lower-level semantic retrieval, import `RAGCore` and `RAGKit` directly:
 
 ```swift
 import RAGCore
@@ -69,21 +104,55 @@ let context = try await kb.makeContext(for: "bright fruit")
 
 ## Usage
 
-The current public surface centers on four library products:
+The current public surface centers on five library products: `RAGCore`, `RAGKit`, `FetchCore`, `FetchKit`, and `SwiftlyFetch`.
+
+For coordinated one-corpus ingestion, use `SwiftlyFetchLibrary` from `SwiftlyFetch`:
 
 ```swift
 import FetchCore
-import FetchKit
+import RAGCore
+import SwiftlyFetch
+
+let library = try await SwiftlyFetchLibrary.default()
+
+let mutation = try await library.addDocument(
+    FetchDocumentRecord(
+        id: "guide",
+        title: "Apple Guide",
+        body: "Apples are bright and crisp.",
+        contentType: .markdown
+    )
+)
+
+let conventionalResults = try await library.search(FetchSearchQuery("apple guide"))
+let semanticResults = try await library.retrieve(SearchQuery("bright crisp"))
+let sideBySideResults = try await library.searchAndRetrieve(
+    conventional: FetchSearchQuery("apple guide"),
+    semantic: SearchQuery("bright crisp")
+)
+```
+
+`SwiftlyFetchMutationResult` reports conventional and semantic outcomes separately. If the corpus write succeeds but semantic indexing fails, the facade queues a semantic retry instead of pretending the whole write failed.
+`retrySemanticIndexing(limit:)` respects retry cooldowns through `nextRetryAt` and reports deferred document IDs separately from completed, missing, and failed retries.
+`searchAndRetrieve(...)` returns conventional and semantic results side by side without combining scores; ranked hybrid search remains future work.
+
+For semantic retrieval, use `KnowledgeBase` from `RAGKit`:
+
+```swift
 import RAGCore
 import RAGKit
 
 let localKB = try await KnowledgeBase.hashingDefault()
 let appleKB = try await KnowledgeBase.naturalLanguageDefault(languageHint: "en")
-let fetchQuery = FetchSearchQuery("apple guide", kind: .allTerms)
-let library = FetchKitLibrary()
+let semanticStore = FileManager.default
+    .temporaryDirectory
+    .appendingPathComponent("SwiftlyFetchSemantic.sqlite")
+let persistentKB = try await KnowledgeBase.persistentHashingDefault(
+    configuration: .init(store: .sqlite(semanticStore))
+)
 ```
 
-The conventional-search side is still early, but the intended top-level shape is already visible:
+For conventional search, use `FetchKitLibrary` from `FetchKit`:
 
 ```swift
 import FetchCore
@@ -108,7 +177,7 @@ let matchedFields = firstResult?.matchedFields
 let snippetField = firstResult?.snippetField
 ```
 
-`matchedFields` identifies every indexed field that contributed to a search result. `snippetField` identifies the field used to build the returned snippet. Title-only hits intentionally keep the title as the snippet source, so simple result lists still have an immediate explanation for why the result appeared, while richer UIs can render title evidence differently from body evidence.
+`matchedFields` identifies every indexed field that contributed to a search result. `snippetField` identifies the field used to build the returned snippet. Simple result lists can show why a result appeared immediately, while richer UIs can render title evidence differently from body evidence.
 
 On macOS, the persistent conventional-search surface is now also shaped around one library storage location instead of separate store and index URLs:
 
@@ -136,6 +205,7 @@ Current defaults:
 - markdown link destinations stay out of chunk text by default, but `HeadingAwareMarkdownChunker(linkDestinationMetadataMode: .include)` can record raw destinations in chunk metadata when downstream indexing or fetch-oriented work needs them
 - `hashingDefault()` gives a deterministic local path for tests and examples
 - `naturalLanguageDefault()` uses the Apple Natural Language backend on supported platforms
+- `persistentHashingDefault(configuration:dimension:)` and `persistentNaturalLanguageDefault(configuration:languageHint:)` use the same retrieval defaults with a Core Data-backed semantic vector index
 - metadata filtering supports explicit exclusions, ordered comparisons for `int`, `double`, and `date`, plus case-insensitive `startsWith` and `endsWith` string matching
 - markdown list items keep heading and immediate lead-in context in chunk text, and also carry structured chunk metadata for list kind, lead-in, ordinal, and heading path
 - markdown block quotes stay secondary by default, but are promoted into the primary retrieval stream when they make up more than one third of the document's chunkable block structure
@@ -148,19 +218,6 @@ Current defaults:
 - conventional-search results report `matchedFields` and `snippetField`, keeping title-only snippets visible while letting consumers distinguish title evidence from body evidence
 - `makeContext(...)` suppresses redundant same-document chunk text, groups annotated output by document, and skips annotated sections that only have room for labels
 
-Supported today:
-
-- build a local knowledge base from plain text and markdown documents
-- use deterministic hashing embeddings for tests, previews, and fully local examples
-- use Apple Natural Language embeddings for on-device semantic retrieval on supported platforms
-- use `FetchKitLibrary()` with a default in-memory backend or inject custom `FetchDocumentStore` and `FetchIndex` implementations explicitly
-- use a real Core Data-backed `FetchDocumentStore` in `FetchKit` with the first thin macOS SearchKit index backend
-- persist and retry pending index-sync work through `FetchKitLibrary.pendingIndexSyncs()` and `retryPendingIndexSyncs(...)`
-- return conventional-search results with query-aware snippets, field-aware ranking, compact-evidence ranking in the default in-memory path, matched-field metadata, and snippet-source metadata across title and body matches
-- narrow retrieval with typed metadata filters
-- preserve meaningful markdown structure for retrieval, including heading paths, list semantics, quote-heavy documents, code-heavy documents, short section breaks, images, and a narrow raw-HTML whitelist
-- turn ranked search results into plain or annotated context text for downstream UI or model consumers
-
 ## Package Status
 
 SwiftlyFetch is usable today as a local Apple-first package family, but it is still early in the broader product arc.
@@ -168,21 +225,23 @@ SwiftlyFetch is usable today as a local Apple-first package family, but it is st
 Good current fits:
 
 - app-level semantic retrieval over local plain-text and markdown corpora
-- conventional-search experimentation through the first `FetchCore` and `FetchKit` surfaces
+- conventional-search experimentation through `FetchCore` and `FetchKit`
 - Apple-first local search prototypes where Core Data, SearchKit, and on-device retrieval matter
+- downstream UI or model features that need ranked search results or assembled context, but do not need SwiftlyFetch to own generation
 
 Current constraints:
 
 - the SearchKit backend is macOS-first
 - Natural Language asset-backed verification runs in local maintainer validation by default, but stays out of the default GitHub-hosted CI lane because hosted macOS still stalls in the asset-backed step
 - the package family direction is broader than the currently shipped polished surface, especially on the `FetchKit` side
+- hybrid search still waits on follow-up result-shape work; the umbrella facade currently exposes conventional `search` and semantic `retrieve` separately
 - conventional-search quality coverage uses a small checked-in Project Gutenberg fixture corpus plus synthetic near-miss and longer-body records; larger app-like corpora are still future validation work
 
-If you want to contribute to the package itself, use [CONTRIBUTING.md](./CONTRIBUTING.md). Maintainer planning and architecture notes live under [docs/maintainers/](./docs/maintainers/).
+For contributor setup, branch workflow, verification commands, and review expectations, use [CONTRIBUTING.md](./CONTRIBUTING.md). Maintainer planning and architecture notes live under [docs/maintainers/](./docs/maintainers/).
 
 ## Release Notes
 
-Tagged releases should be created with `scripts/repo-maintenance/release.sh`, and each published tag should get matching GitHub release notes that summarize what changed and how it was verified. Maintainer planning and architecture notes live under `docs/maintainers/`.
+See the repository's GitHub releases for published package notes. Release workflow details belong in [CONTRIBUTING.md](./CONTRIBUTING.md) and the maintainer docs, not in this user-facing README.
 
 ## License
 

@@ -153,11 +153,14 @@ Implemented today:
   - `HeadingAwareMarkdownChunker`
   - `DefaultChunker`
   - `InMemoryVectorIndex`
+  - `CoreDataVectorIndex`
   - `HashingEmbedder`
   - `KnowledgeBase`
   - `NaturalLanguageEmbedder`
   - `AppleContextualEmbeddingBackend`
-  - convenience constructors for `hashingDefault()` and `naturalLanguageDefault()`
+  - convenience constructors for `hashingDefault()`, `naturalLanguageDefault()`, `persistentHashingDefault(configuration:dimension:)`, and `persistentNaturalLanguageDefault(configuration:languageHint:)`
+- semantic index persistence now exists as a `RAGKit`-owned derived store through `CoreDataVectorIndex`, keeping semantic chunks and embeddings behind the existing `VectorIndex` protocol instead of pushing vector-storage concerns into `FetchKit`
+- persisted semantic index health now exists as a `RAGKit` concern through document-level status and fingerprints, while retry scheduling remains reserved for the future umbrella ingestion surface
 - markdown chunking now uses a parser-backed internal section model built on [swift-markdown](https://github.com/swiftlang/swift-markdown) instead of the earlier line-based heading scanner
 - list-item chunks now preserve immediate lead-in context in chunk text and also expose chunk metadata for block kind, list kind, lead-in, ordinal, and heading path
 - block quotes stay secondary by default but are promoted into the primary retrieval stream when they make up more than one third of the document's chunkable block structure
@@ -168,10 +171,14 @@ Implemented today:
 - markdown tables now produce one retrieval chunk per body row with header-aware text and table-row metadata
 - inline links and reference links now default to visible anchor text in chunk text, while raw destinations and reference definitions stay secondary and do not become standalone retrieval chunks unless a caller explicitly opts into chunk metadata for destinations
 - deterministic tests cover the main retrieval flow and the Natural Language wrapper seam
+- Core Data-backed vector-index tests cover persisted semantic chunks, replacement, filtering, document removal, remove-all behavior, and the persistent `KnowledgeBase` convenience path
+- semantic-state tests cover current, stale, failed, and source-fingerprint-change behavior
 - a real Natural Language integration test target exists, now runs in default local maintainer validation, and remains out of the default GitHub-hosted lane because the hosted `macos-15` path stalled in the Natural Language step
 
 Still intentionally incomplete:
 
+- deeper lifecycle expansion of the one-corpus umbrella ingestion facade beyond the initial `FetchKit` write and `RAGKit` semantic indexing surface
+- retry-policy refinements beyond the current umbrella-owned semantic retry scheduling, including backoff tuning, prioritization, and operational controls
 - markdown policy refinement for additional block kinds and future evolution
 - optional future retrieval-default refinements only if concrete caller needs emerge beyond the current exclusion, ordered-comparison, and grouped-context defaults
 

@@ -1,15 +1,29 @@
 import FetchCore
 
-enum GutenbergMiniCorpus {
-    struct Source: Hashable, Sendable {
-        let datasetID: String
-        let config: String
-        let split: String
-        let license: String
-        let url: String
+public enum GutenbergMiniCorpus {
+    public struct Source: Hashable, Sendable {
+        public let datasetID: String
+        public let config: String
+        public let split: String
+        public let license: String
+        public let url: String
+
+        public init(
+            datasetID: String,
+            config: String,
+            split: String,
+            license: String,
+            url: String
+        ) {
+            self.datasetID = datasetID
+            self.config = config
+            self.split = split
+            self.license = license
+            self.url = url
+        }
     }
 
-    static let source = Source(
+    public static let source = Source(
         datasetID: "zkeown/gutenberg-corpus",
         config: "chapters",
         split: "train",
@@ -17,7 +31,7 @@ enum GutenbergMiniCorpus {
         url: "https://huggingface.co/datasets/zkeown/gutenberg-corpus"
     )
 
-    static let records: [FetchDocumentRecord] = [
+    public static let records: [FetchDocumentRecord] = [
         FetchDocumentRecord(
             id: "gutenberg-78430-chapter-1",
             title: "A practical course in botany: Chapter I. The Seed",

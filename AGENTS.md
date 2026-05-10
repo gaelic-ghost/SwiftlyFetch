@@ -21,7 +21,7 @@ Check these surfaces before reading broadly:
 
 ### Change Scope
 
-Keep work retrieval-first and Apple-first. If a change starts pulling the repo toward answer generation, chat orchestration, agents, remote APIs, persistence layers, or connector-heavy ingestion, stop and surface that scope change explicitly before implementing it.
+Keep work retrieval-first and Apple-first. RAGKit/SwiftlyFetch semantic index persistence is an approved retrieval-state pattern; if a change starts pulling the repo toward answer generation, chat orchestration, agents, remote APIs, other persistence layers, or connector-heavy ingestion, stop and surface that scope change explicitly before implementing it.
 
 ### Source of Truth
 
@@ -66,7 +66,7 @@ Work is done when the package still builds and tests cleanly, repo-maintenance v
 
 ### Never Do
 
-- Never widen this package into generation, chat orchestration, agents, PDF ingestion, persistence layers, or remote provider APIs without explicit approval.
+- Never widen this package into generation, chat orchestration, agents, PDF ingestion, persistence layers beyond the approved RAGKit/SwiftlyFetch semantic index state, or remote provider APIs without explicit approval.
 - Never make the main test suite depend on downloaded Apple embedding assets.
 - Never add external dependencies for this v1 retrieval package without explicit approval.
 - Never hand-edit generated package-manager outputs such as `Package.resolved` if they appear later.
@@ -100,6 +100,7 @@ There are no deeper `AGENTS.md` files in the current repository tree. If more sp
 - Prefer `swift package` subcommands for structural package edits before manually editing `Package.swift`.
 - Edit `Package.swift` intentionally and keep it readable; agents may modify it when package structure, targets, products, or dependencies need to change, and should try to keep package graph updates consolidated in one change when possible.
 - Keep `Package.swift` explicit about its package-wide Swift language mode. On current Swift 6-era manifests, prefer `swiftLanguageModes: [.v6]` as the default declaration, treat `swiftLanguageVersions` as a legacy alias used only when an older manifest surface requires it, and remember that lowering the manifest's `// swift-tools-version:` from the bootstrap default is often appropriate when the package should support an older Swift 6 toolchain, but never below `6.0`.
+- Keep the shared Swift-package dependency baseline in mind when creating new Swift package repos or when this package's dependency policy is explicitly opened: the current baseline package is `swift-configuration` from `https://github.com/apple/swift-configuration`, with the `Configuration` product and package traits `.defaults`, `Reloading`, `YAML`, and `CommandLineArguments`. The optional `PropertyList` trait is available when property-list parsing is needed, and the optional `Logging` trait is available when configuration access should integrate with `SwiftLog.Logger`. This repository's v1 safety boundary still applies: do not add new external dependencies to `SwiftlyFetch` without explicit approval.
 - Avoid adding unnecessary dependency-provenance detail or switching to branch/revision-based requirements unless the user explicitly asks for that level of control.
 - Treat `Package.resolved` and similar package-manager outputs as generated files; do not hand-edit them.
 - Prefer Swift Testing by default unless an external constraint requires XCTest.

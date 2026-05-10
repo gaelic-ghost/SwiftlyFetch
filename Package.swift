@@ -26,6 +26,10 @@ let package = Package(
             name: "RAGKit",
             targets: ["RAGKit"]
         ),
+        .library(
+            name: "SwiftlyFetch",
+            targets: ["SwiftlyFetch"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-markdown.git", from: "0.7.3"),
@@ -48,6 +52,20 @@ let package = Package(
                 .product(name: "Markdown", package: "swift-markdown"),
             ]
         ),
+        .target(
+            name: "SwiftlyFetch",
+            dependencies: [
+                "FetchCore",
+                "FetchKit",
+                "RAGCore",
+                "RAGKit",
+            ]
+        ),
+        .target(
+            name: "SwiftlyFetchTestFixtures",
+            dependencies: ["FetchCore"],
+            path: "Tests/SwiftlyFetchTestFixtures"
+        ),
         .testTarget(
             name: "RAGCoreTests",
             dependencies: ["RAGCore"]
@@ -58,7 +76,7 @@ let package = Package(
         ),
         .testTarget(
             name: "FetchKitTests",
-            dependencies: ["FetchKit", "FetchCore"]
+            dependencies: ["FetchKit", "FetchCore", "SwiftlyFetchTestFixtures"]
         ),
         .testTarget(
             name: "RAGKitTests",
@@ -67,6 +85,10 @@ let package = Package(
         .testTarget(
             name: "RAGKitIntegrationTests",
             dependencies: ["RAGKit", "RAGCore"]
+        ),
+        .testTarget(
+            name: "SwiftlyFetchTests",
+            dependencies: ["SwiftlyFetch", "FetchCore", "RAGCore", "RAGKit", "SwiftlyFetchTestFixtures"]
         ),
     ],
     swiftLanguageModes: [.v6]

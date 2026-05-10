@@ -12,7 +12,8 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 - [Milestone 2: Post-v0.1.0 Refinement](#milestone-2-post-v010-refinement)
 - [Milestone 3: FetchKit Foundation](#milestone-3-fetchkit-foundation)
 - [Milestone 4: FetchKit Refinement](#milestone-4-fetchkit-refinement)
-- [Milestone 5: FetchKit Platform And CI Decisions](#milestone-5-fetchkit-platform-and-ci-decisions)
+- [Milestone 5: Semantic Index Persistence](#milestone-5-semantic-index-persistence)
+- [Milestone 6: FetchKit Platform And CI Decisions](#milestone-6-fetchkit-platform-and-ci-decisions)
 - [Backlog Candidates](#backlog-candidates)
 - [History](#history)
 
@@ -33,7 +34,8 @@ Use this roadmap to track milestone-level delivery through checklist sections.
 - Milestone 2: Post-v0.1.0 Refinement - Completed
 - Milestone 3: FetchKit Foundation - Completed
 - Milestone 4: FetchKit Refinement - In Progress
-- Milestone 5: FetchKit Platform And CI Decisions - Planned
+- Milestone 5: Semantic Index Persistence - In Progress
+- Milestone 6: FetchKit Platform And CI Decisions - Planned
 
 ## Milestone 0: Foundation
 
@@ -187,6 +189,7 @@ In Progress
 - [x] Decide that title-only hits should keep title snippets while exposing `matchedFields` and `snippetField` so consumers can distinguish title evidence from body evidence.
 - [x] Add broader fixture-corpus pressure for near-miss all-term ranking and longer-body snippet selection across the default in-memory path and the macOS SearchKit-backed path.
 - [x] Refine the default in-memory all-term ranker so tighter evidence beats scattered term mentions instead of falling through to document ID tie-breaking.
+- [x] Add a second checked-in text source for corpus-based tests so fixture coverage is not only Gutenberg-derived.
 - [ ] Audit larger app-like corpus result quality now that field-aware ranking, compact all-term evidence, phrase weighting, truncation cues, multi-term snippets, and field-evidence metadata are in place.
 - [ ] Keep the persistent `FetchKitLibrary` construction and search API surface under review as real callers exercise the current design.
 - [ ] Explore an opt-in extended snippet surface that can use idle time to precompute short document summaries for larger records, with Apple's [`FoundationModels`](https://developer.apple.com/documentation/foundationmodels) or another local summarization path as the first candidate instead of making foreground full-text search wait on summarization.
@@ -197,7 +200,39 @@ In Progress
 - [x] The SearchKit-backed path runs in normal local validation and the default GitHub CI lane.
 - [ ] `FetchKitLibrary` still reads like a small Swift-native facade instead of exposing backend detail drift.
 
-## Milestone 5: FetchKit Platform And CI Decisions
+## Milestone 5: Semantic Index Persistence
+
+### Status
+
+In Progress
+
+### Scope
+
+- [x] Add a `RAGKit`-owned persisted semantic vector index while keeping the public contract behind `VectorIndex`.
+- [x] Keep semantic chunks and embeddings as derived retrieval state instead of moving them into the `FetchKit` corpus store.
+- [x] Add persistent `KnowledgeBase` convenience constructors that preserve the current chunking and embedding defaults.
+- [x] Add RAG-owned semantic status and fingerprint records for persisted semantic indexes.
+- [x] Design the future one-corpus ingestion facade that coordinates `FetchKit` corpus writes with `RAGKit` semantic indexing.
+- [x] Decide semantic indexing retry and stale-state policy for failures after durable corpus writes succeed.
+
+### Tickets
+
+- [x] Add `CoreDataVectorIndex` as the first persisted semantic index backend.
+- [x] Persist chunk identity, document identity, chunk text, metadata, source position, embedding vectors, and update timestamps.
+- [x] Cover persisted vector-index round trips, replacement, filtering, document removal, remove-all behavior, and `KnowledgeBase` convenience reuse.
+- [x] Record the hybrid search persistence ownership model in maintainer docs.
+- [x] Keep retry scheduling above the sibling packages while storing semantic health truth in `RAGKit`.
+- [x] Plan the first `SwiftlyFetch` umbrella facade in maintainer docs.
+- [x] Add a narrow bridge from `FetchDocumentRecord` to `RAGCore.Document`.
+- [x] Add an umbrella ingestion surface only after the semantic persisted index is stable.
+
+### Exit Criteria
+
+- [x] Semantic retrieval can survive process restarts without re-chunking and re-embedding the corpus.
+- [x] `RAGKit` owns semantic persistence without making `FetchCore` depend on `RAGCore`.
+- [x] The repo has a concrete next-step plan for one ingestion surface and both search modes.
+
+## Milestone 6: FetchKit Platform And CI Decisions
 
 ### Status
 
@@ -226,7 +261,7 @@ Planned
 - [ ] If parser-backed markdown chunking still leaves retrieval-quality gaps, add retrieval-specific chunking heuristics on top of the chosen markdown parser instead of rebuilding markdown parsing rules locally.
 - [ ] If asset-backed automation becomes important again, evaluate a self-hosted macOS runner with prewarmed assets before retrying a hosted GitHub Actions lane.
 - [ ] Consider a follow-on conventional-search quality pass only if real corpora show ranking, snippet, or result-presentation gaps beyond the current field-aware heuristics.
-- [ ] Evaluate whether fixture-corpus coverage should grow through additional checked-in micro-records, generated local fixtures, or an opt-in live dataset lane before adopting a Swift Hub dependency.
+- [ ] Revisit fixture-corpus growth only if real result-quality gaps show that the current Gutenberg plus TinyStories micro-records are too narrow.
 
 ## History
 
@@ -274,3 +309,6 @@ Planned
 - Promoted the Natural Language integration lane into default local maintainer validation, but kept it out of GitHub-hosted CI after another hosted experiment remained stuck in the asset-backed step for minutes while the local path completed in seconds.
 - Opened the next roadmap phase around SearchKit/Natural Language verification strategy, iOS conventional-search backend direction, and another caller-driven `FetchKitLibrary` polish pass if real usage shows it is needed.
 - Broadened the checked-in fixture corpus with synthetic near-miss and longer-body records, added in-memory and SearchKit parity coverage for those cases, and refined in-memory all-term ranking so compact evidence beats scattered mentions.
+- Added the first `SwiftlyFetch` umbrella facade with a document mapper, one-corpus ingestion, separate conventional and semantic mutation outcomes, semantic retry storage, and macOS persistent construction.
+- Added a TinyStories-derived mini corpus as a second checked-in text source and introduced side-by-side `SwiftlyFetchLibrary.searchAndRetrieve(...)` without ranked hybrid score mixing.
+- Tightened `SwiftlyFetchLibrary.retrySemanticIndexing(limit:)` so semantic retries respect `nextRetryAt` cooldowns and report deferred document IDs separately.
