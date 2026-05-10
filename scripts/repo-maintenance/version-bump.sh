@@ -25,12 +25,17 @@ import sys
 readme_path = Path(sys.argv[1])
 tmp_path = Path(sys.argv[2])
 tag = sys.argv[3]
+version = tag.removeprefix("v")
 text = readme_path.read_text()
-pattern = re.compile(r"`v\d+\.\d+\.\d+` is .*")
-replacement = f"`{tag}` is the current tagged package release and is stable enough to try locally."
-updated, count = pattern.subn(replacement, text, count=1)
-if count != 1:
+status_pattern = re.compile(r"`v\d+\.\d+\.\d+` is .*")
+status_replacement = f"`{tag}` is the current tagged package release and is stable enough to try locally."
+updated, status_count = status_pattern.subn(status_replacement, text, count=1)
+if status_count != 1:
     raise SystemExit("Could not find the README status line to update.")
+dependency_pattern = re.compile(r'from: "[^"]+"')
+updated, dependency_count = dependency_pattern.subn(f'from: "{version}"', updated, count=1)
+if dependency_count != 1:
+    raise SystemExit("Could not find the README package dependency version to update.")
 tmp_path.write_text(updated)
 PY
 
@@ -43,25 +48,26 @@ cat >"$release_notes_path" <<EOF
 
 ## What Changed
 
-- refined conventional-search ranking so title hits get a modest boost, Search Kit scores normalize per field, and cross-field matches accumulate more intentionally
-- replaced the old single-term snippet behavior with shared query-aware snippets that can highlight multiple query terms and show visible truncation markers when context is cropped
-- added stronger default-path and Search Kit coverage for ranking preference, phrase behavior, and snippet presentation
-- documented the new conventional-search refinement state in the README, roadmap, and maintainer notes
+- added the first \`SwiftlyFetch\` umbrella facade for one-corpus ingestion across conventional search and semantic retrieval
+- persisted semantic vector index state and document-level semantic health through Core Data-backed \`RAGKit\` storage
+- added semantic retry storage, retry cooldown handling, persistent facade construction, and side-by-side \`searchAndRetrieve(...)\`
+- expanded corpus-based coverage with a TinyStories-derived fixture source alongside the existing Gutenberg-derived fixture records
+- hardened release resume behavior and refreshed the quick-start documentation with package dependency guidance and promo media
 
 ## Breaking Changes
 
-- None. This is a backward-compatible patch release on top of \`v0.1.1\`.
+- None. This is a backward-compatible minor release on top of \`v0.1.2\`.
 
 ## Migration Or Upgrade Notes
 
-- \`RAGCore\` and \`RAGKit\` continue to provide the shipped semantic retrieval surface from \`v0.1.1\`.
-- \`FetchCore\` and \`FetchKit\` still expose the same conventional-search foundation, but \`FetchKitLibrary\` search results now rank title and phrase matches more intentionally and return richer snippets by default.
-- Real Natural Language integration coverage now runs in local maintainer validation by default, while GitHub-hosted CI still skips the asset-backed lane.
-- The Search Kit verification path now runs in normal validation, with \`scripts/repo-maintenance/run-searchkit-tests.sh\` kept as a focused local helper.
+- Existing \`RAGCore\`, \`RAGKit\`, \`FetchCore\`, and \`FetchKit\` callers can keep using those products directly.
+- New callers that want coordinated corpus writes can import \`SwiftlyFetch\` and use \`SwiftlyFetchLibrary\`.
+- \`SwiftlyFetchLibrary.searchAndRetrieve(...)\` returns conventional and semantic results side by side; ranked hybrid search remains intentionally reserved for a later score-policy API.
+- The default umbrella facade still uses deterministic hashing embeddings so tests, previews, and examples do not depend on downloaded Apple embedding assets.
 
 ## Verification Performed
 
-- \`swift test\`
 - \`scripts/repo-maintenance/validate-all.sh\`
-- \`scripts/repo-maintenance/run-searchkit-tests.sh\`
+- \`swift test --filter SwiftlyFetchLibraryTests\`
+- \`swiftformat --lint Sources/SwiftlyFetch/SwiftlyFetchLibrary.swift Sources/SwiftlyFetch/SwiftlyFetchSemanticRetry.swift Tests/SwiftlyFetchTests/SwiftlyFetchLibraryTests.swift\`
 EOF
