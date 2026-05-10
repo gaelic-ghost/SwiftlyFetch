@@ -287,8 +287,8 @@ wait_for_initial_pr_checks() {
   log "Waiting up to ${timeout_seconds}s for GitHub to report initial checks on PR #$pr_number."
 
   while :; do
-    last_state="$(gh pr checks "$pr_number" --json name,state,workflow --jq 'map(.name + ":" + .state) | join(", ")' 2>/dev/null || printf 'no checks reported')"
-    check_count="$(gh pr checks "$pr_number" --json name,state,workflow --jq 'length' 2>/dev/null || printf '0')"
+    last_state="$(gh pr view "$pr_number" --json statusCheckRollup --jq '[.statusCheckRollup[]? | .name + ":" + ((.status // .state // .conclusion // "") | ascii_downcase)] | join(", ")' 2>/dev/null || printf 'no checks reported')"
+    check_count="$(gh pr view "$pr_number" --json statusCheckRollup --jq '(.statusCheckRollup // []) | length' 2>/dev/null || printf '0')"
     case "$check_count" in
       ''|*[!0-9]*)
         check_count="0"
@@ -349,7 +349,7 @@ check_pr_comments() {
   wait_for_pr_review_state "$pr_number"
 
   review_decision="$(gh pr view "$pr_number" --json reviewDecision --jq '.reviewDecision // ""')"
-  comment_count="$(gh pr view "$pr_number" --json comments,reviews --jq '([.comments[]?, (.reviews[]? | select(.state == "COMMENTED"))] | length)')"
+  comment_count="$(gh pr view "$pr_number" --json comments,reviews --jq '([.comments[]?, (.reviews[]? | select(.state == "COMMENTED" or ((.body // "") | length > 0)))] | length)')"
 
   if [ "$review_decision" = "CHANGES_REQUESTED" ]; then
     gh pr view "$pr_number" --comments

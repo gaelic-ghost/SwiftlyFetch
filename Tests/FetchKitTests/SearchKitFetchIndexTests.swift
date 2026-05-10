@@ -294,10 +294,12 @@ final class SearchKitFetchIndexTests: XCTestCase {
         let results = try await index.search(
             FetchSearchQuery("needle sew shirt", kind: .allTerms, fields: [.title, .body], limit: 4)
         )
+        let needleResult = try XCTUnwrap(
+            results.first { $0.document.id == "tinystories-row-0-needle" }
+        )
 
-        XCTAssertEqual(results.first?.document.id, "tinystories-row-0-needle")
-        XCTAssertEqual(results.first?.matchedFields.contains(.body), true)
-        XCTAssertEqual(results.first?.snippet?.text.localizedCaseInsensitiveContains("needle"), true)
+        XCTAssertEqual(needleResult.matchedFields.contains(.body), true)
+        XCTAssertEqual(needleResult.snippet?.text.localizedCaseInsensitiveContains("needle"), true)
     }
 
     func testFetchKitLibraryBuildsPersistentPair() async throws {

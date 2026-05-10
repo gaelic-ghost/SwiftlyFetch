@@ -21,7 +21,7 @@ Check these surfaces before reading broadly:
 
 ### Change Scope
 
-Keep work retrieval-first and Apple-first. If a change starts pulling the repo toward answer generation, chat orchestration, agents, remote APIs, persistence layers, or connector-heavy ingestion, stop and surface that scope change explicitly before implementing it.
+Keep work retrieval-first and Apple-first. RAGKit/SwiftlyFetch semantic index persistence is an approved retrieval-state pattern; if a change starts pulling the repo toward answer generation, chat orchestration, agents, remote APIs, other persistence layers, or connector-heavy ingestion, stop and surface that scope change explicitly before implementing it.
 
 ### Source of Truth
 
@@ -66,7 +66,7 @@ Work is done when the package still builds and tests cleanly, repo-maintenance v
 
 ### Never Do
 
-- Never widen this package into generation, chat orchestration, agents, PDF ingestion, persistence layers, or remote provider APIs without explicit approval.
+- Never widen this package into generation, chat orchestration, agents, PDF ingestion, persistence layers beyond the approved RAGKit/SwiftlyFetch semantic index state, or remote provider APIs without explicit approval.
 - Never make the main test suite depend on downloaded Apple embedding assets.
 - Never add external dependencies for this v1 retrieval package without explicit approval.
 - Never hand-edit generated package-manager outputs such as `Package.resolved` if they appear later.

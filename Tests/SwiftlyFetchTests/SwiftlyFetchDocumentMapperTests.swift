@@ -53,4 +53,21 @@ struct SwiftlyFetchDocumentMapperTests {
         #expect(document.metadata["title"] == nil)
         #expect(document.metadata["contentType"] == .string("plainText"))
     }
+
+    @Test("Mapper includes normalized title in plain text source and metadata")
+    func mapperIncludesNormalizedTitleInPlainTextSourceAndMetadata() {
+        let mapper = SwiftlyFetchDocumentMapper()
+        let record = FetchDocumentRecord(
+            id: "doc-note",
+            title: "  Note\nTitle\tDraft  ",
+            body: "A standalone note.",
+            contentType: .plainText
+        )
+
+        let document = mapper.document(from: record)
+
+        #expect(document.content == .text("Title: Note Title Draft\n\nA standalone note."))
+        #expect(document.metadata["title"] == .string("Note Title Draft"))
+        #expect(document.metadata["contentType"] == .string("plainText"))
+    }
 }

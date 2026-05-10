@@ -96,7 +96,7 @@ enum SemanticFingerprintFactory {
             case let .int(int):
                 return "int:\(int)"
             case let .double(double):
-                return "double:\(double)"
+                return "double:\(String(format: "%.17g", locale: Locale(identifier: "en_US_POSIX"), double))"
             case let .bool(bool):
                 return "bool:\(bool)"
             case let .date(date):

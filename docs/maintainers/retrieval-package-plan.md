@@ -177,8 +177,8 @@ Implemented today:
 
 Still intentionally incomplete:
 
-- the one-corpus umbrella ingestion facade that coordinates `FetchKit` writes and `RAGKit` semantic indexing
-- umbrella-owned retry scheduling for semantic indexing failures after a durable corpus write succeeds
+- deeper lifecycle expansion of the one-corpus umbrella ingestion facade beyond the initial `FetchKit` write and `RAGKit` semantic indexing surface
+- retry-policy refinements beyond the current umbrella-owned semantic retry scheduling, including backoff tuning, prioritization, and operational controls
 - markdown policy refinement for additional block kinds and future evolution
 - optional future retrieval-default refinements only if concrete caller needs emerge beyond the current exclusion, ordered-comparison, and grouped-context defaults
 

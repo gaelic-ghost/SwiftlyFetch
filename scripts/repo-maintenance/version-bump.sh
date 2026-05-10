@@ -27,8 +27,8 @@ tmp_path = Path(sys.argv[2])
 tag = sys.argv[3]
 version = tag.removeprefix("v")
 text = readme_path.read_text()
-status_pattern = re.compile(r"`v\d+\.\d+\.\d+` is .*")
-status_replacement = f"`{tag}` is the current tagged package release and is stable enough to try locally."
+status_pattern = re.compile(r"(?:`v\d+\.\d+\.\d+` is .*|SwiftlyFetch has tagged releases stable enough to try locally, and the umbrella `SwiftlyFetch` surface is available in the current codebase\. See GitHub Releases for the latest published version details\.)")
+status_replacement = "SwiftlyFetch has tagged releases stable enough to try locally, and the umbrella `SwiftlyFetch` surface is available in the current codebase. See GitHub Releases for the latest published version details."
 updated, status_count = status_pattern.subn(status_replacement, text, count=1)
 if status_count != 1:
     raise SystemExit("Could not find the README status line to update.")

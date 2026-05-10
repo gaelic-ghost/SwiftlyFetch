@@ -73,9 +73,16 @@ public struct SwiftlyFetchDocumentMapper: Hashable, Sendable {
     }
 
     private func normalizedTitle(from record: FetchDocumentRecord) -> String? {
-        guard let title = record.title?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !title.isEmpty
-        else {
+        guard let rawTitle = record.title else {
+            return nil
+        }
+
+        let title = rawTitle
+            .split(whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !title.isEmpty else {
             return nil
         }
 

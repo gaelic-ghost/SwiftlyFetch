@@ -33,7 +33,7 @@ The package family is intentionally split by job:
 - `FetchKit` provides the first conventional-search facade, Core Data document storage, pending index-sync tracking, and a macOS SearchKit backend.
 - `SwiftlyFetch` composes both sibling package families so callers can add a document once, then use conventional search and semantic retrieval over the same corpus.
 
-`v0.2.0` is the current tagged package release and is stable enough to try locally.
+SwiftlyFetch has tagged releases stable enough to try locally, and the umbrella `SwiftlyFetch` surface is available in the current codebase. See GitHub Releases for the latest published version details.
 
 SwiftlyFetch is not a chat framework, LLM SDK, agent runtime, or remote-provider abstraction. Its job is local retrieval: document preparation, indexing, search, filtering, and context assembly.
 

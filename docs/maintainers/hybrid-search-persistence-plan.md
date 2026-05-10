@@ -118,9 +118,9 @@ The next architecture work should focus on shared corpus ingestion rather than a
 
 Recommended order:
 
-1. Add a narrow bridge from `FetchDocumentRecord` to `RAGCore.Document`.
-2. Add an umbrella library facade that owns one ingestion operation and calls both sibling systems.
-3. Add an umbrella-owned semantic retry queue keyed by document ID, with attempt counts and next retry dates.
+1. Expand and harden the existing bridge from `FetchDocumentRecord` to `RAGCore.Document`.
+2. Extend the umbrella library facade ingestion lifecycle beyond one-corpus add/search/retrieve basics.
+3. Evolve the umbrella-owned semantic retry queue policy with attempt strategy, cooldown tuning, and backlog management.
 4. Add hybrid result packaging only after conventional and semantic result paths are each independently durable.
 
 ## Open Questions
