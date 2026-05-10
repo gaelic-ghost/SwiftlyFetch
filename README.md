@@ -33,7 +33,7 @@ The package family is intentionally split by job:
 - `FetchKit` provides the first conventional-search facade, Core Data document storage, pending index-sync tracking, and a macOS SearchKit backend.
 - `SwiftlyFetch` composes both sibling package families so callers can add a document once, then use conventional search and semantic retrieval over the same corpus.
 
-`v0.1.2` is the current tagged release and is stable enough to try locally. The umbrella `SwiftlyFetch` surface is now implemented on the development branch and will be part of a future tagged release.
+`v0.2.0` is the current tagged package release and is stable enough to try locally.
 
 SwiftlyFetch is not a chat framework, LLM SDK, agent runtime, or remote-provider abstraction. Its job is local retrieval: document preparation, indexing, search, filtering, and context assembly.
 
@@ -42,7 +42,7 @@ SwiftlyFetch is not a chat framework, LLM SDK, agent runtime, or remote-provider
 Add SwiftlyFetch to your `Package.swift` dependencies:
 
 ```swift
-.package(url: "https://github.com/gaelic-ghost/SwiftlyFetch", from: "x.x.x"),
+.package(url: "https://github.com/gaelic-ghost/SwiftlyFetch", from: "0.2.0"),
 ```
 
 Then add the library product to your target dependencies:
