@@ -17,6 +17,11 @@ struct FixtureCorpusQualityTests {
         #expect(TinyStoriesMiniCorpus.source.split == "train")
         #expect(TinyStoriesMiniCorpus.records.allSatisfy { $0.sourceURI == TinyStoriesMiniCorpus.source.url })
         #expect(TinyStoriesMiniCorpus.records.allSatisfy { $0.metadata["fixture.dataset"] == TinyStoriesMiniCorpus.source.datasetID })
+        #expect(HuggingFaceAuditCorpus.records.count == 10)
+        #expect(HuggingFaceAuditCorpus.tinyStoriesRecords.allSatisfy { $0.sourceURI == HuggingFaceAuditCorpus.tinyStoriesSource.url })
+        #expect(HuggingFaceAuditCorpus.simpleWikipediaRecords.allSatisfy { $0.sourceURI == HuggingFaceAuditCorpus.simpleWikipediaSource.url })
+        #expect(HuggingFaceAuditCorpus.gutenbergPoetryRecords.allSatisfy { $0.sourceURI == HuggingFaceAuditCorpus.gutenbergPoetrySource.url })
+        #expect(HuggingFaceAuditCorpus.records.allSatisfy { $0.metadata["fixture.dataset"] != nil })
     }
 
     @Test("Fixture corpus retrieves a body-driven chapter hit")
@@ -146,9 +151,83 @@ struct FixtureCorpusQualityTests {
         #expect(fuelResults.first?.matchedFields.contains(.body) == true)
     }
 
+    @Test("Hugging Face audit corpus retrieves distinct content families")
+    func huggingFaceAuditCorpusRetrievesDistinctContentFamilies() async throws {
+        let library = try await indexedAuditLibrary()
+
+        let calendarResults = try await library.search(
+            "april leap year flowers",
+            kind: .allTerms,
+            fields: [.title, .body],
+            limit: 4
+        )
+        let rhetoricResults = try await library.search(
+            "against person weak argument",
+            kind: .allTerms,
+            fields: [.title, .body],
+            limit: 4
+        )
+        let storyResults = try await library.search(
+            "triangle puddle troubled toy",
+            kind: .allTerms,
+            fields: [.title, .body],
+            limit: 4
+        )
+        let poetryResults = try await library.search(
+            "great lakes northland ojibways",
+            kind: .allTerms,
+            fields: [.title, .body],
+            limit: 4
+        )
+
+        #expect(calendarResults.first?.document.id == "hf-simplewiki-april")
+        #expect(calendarResults.first?.snippet?.text.localizedCaseInsensitiveContains("leap years") == true)
+        #expect(rhetoricResults.first?.document.id == "hf-simplewiki-ad-hominem")
+        #expect(rhetoricResults.first?.snippet?.text.localizedCaseInsensitiveContains("weak") == true)
+        #expect(rhetoricResults.first?.snippet?.text.localizedCaseInsensitiveContains("argument") == true)
+        #expect(storyResults.first?.document.id == "hf-tinystories-row-6-triangle")
+        #expect(storyResults.first?.snippet?.text.localizedCaseInsensitiveContains("puddle") == true)
+        #expect(poetryResults.first?.document.id == "hf-poetry-hiawatha-northland")
+        #expect(poetryResults.first?.snippet?.text.localizedCaseInsensitiveContains("great lakes") == true)
+    }
+
+    @Test("Hugging Face audit corpus exposes useful snippet fields")
+    func huggingFaceAuditCorpusExposesUsefulSnippetFields() async throws {
+        let library = try await indexedAuditLibrary()
+
+        let titleResults = try await library.search(
+            "angel",
+            kind: .allTerms,
+            fields: [.title, .body],
+            limit: 4
+        )
+        let bodyResults = try await library.search(
+            "cobweb spider castle",
+            kind: .allTerms,
+            fields: [.title, .body],
+            limit: 4
+        )
+
+        #expect(titleResults.first?.document.id == "hf-simplewiki-angels")
+        #expect(titleResults.first?.matchedFields.contains(.title) == true)
+        #expect(bodyResults.first?.document.id == "hf-tinystories-row-4-cobweb")
+        #expect(bodyResults.first?.matchedFields.contains(.body) == true)
+        #expect(bodyResults.first?.snippetField == .body)
+    }
+
     private func indexedFixtureLibrary() async throws -> FetchKitLibrary {
         let library = FetchKitLibrary()
         try await library.addDocuments(GutenbergMiniCorpus.records + TinyStoriesMiniCorpus.records)
+        return library
+    }
+
+    private func indexedAuditLibrary() async throws -> FetchKitLibrary {
+        let library = FetchKitLibrary()
+        try await library.addDocuments(
+            GutenbergMiniCorpus.records
+                + TinyStoriesMiniCorpus.records
+                + HuggingFaceAuditCorpus.records
+        )
         return library
     }
 }

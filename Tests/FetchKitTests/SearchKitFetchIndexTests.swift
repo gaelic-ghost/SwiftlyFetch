@@ -7,7 +7,7 @@ import XCTest
 
 final class SearchKitFetchIndexTests: XCTestCase {
     private var fixtureRecords: [FetchDocumentRecord] {
-        GutenbergMiniCorpus.records + TinyStoriesMiniCorpus.records
+        GutenbergMiniCorpus.records + TinyStoriesMiniCorpus.records + HuggingFaceAuditCorpus.records
     }
 
     func testSearchKitFetchIndexIndexesAndSearchesText() async throws {
@@ -300,6 +300,35 @@ final class SearchKitFetchIndexTests: XCTestCase {
 
         XCTAssertEqual(needleResult.matchedFields.contains(.body), true)
         XCTAssertEqual(needleResult.snippet?.text.localizedCaseInsensitiveContains("needle"), true)
+    }
+
+    func testSearchKitFetchIndexMatchesHuggingFaceAuditCorpusSources() async throws {
+        let index = try SearchKitFetchIndex(
+            configuration: .init(
+                storage: .inMemory,
+                indexNamePrefix: "SearchKitFetchIndexTests-\(UUID().uuidString)"
+            )
+        )
+
+        try await index.apply(
+            FetchIndexingChangeset(
+                fixtureRecords.map { .upsert($0.indexDocument) }
+            )
+        )
+
+        let rhetoricResults = try await index.search(
+            FetchSearchQuery("against person weak argument", kind: .allTerms, fields: [.title, .body], limit: 4)
+        )
+        let storyResults = try await index.search(
+            FetchSearchQuery("triangle puddle troubled toy", kind: .allTerms, fields: [.title, .body], limit: 4)
+        )
+        let poetryResults = try await index.search(
+            FetchSearchQuery("great lakes northland ojibways", kind: .allTerms, fields: [.title, .body], limit: 4)
+        )
+
+        XCTAssertEqual(rhetoricResults.first?.document.id, "hf-simplewiki-ad-hominem")
+        XCTAssertEqual(storyResults.first?.document.id, "hf-tinystories-row-6-triangle")
+        XCTAssertEqual(poetryResults.first?.document.id, "hf-poetry-hiawatha-northland")
     }
 
     func testFetchKitLibraryBuildsPersistentPair() async throws {
