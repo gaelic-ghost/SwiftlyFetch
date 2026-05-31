@@ -318,6 +318,17 @@ final class CoreDataVectorIndexTests: XCTestCase {
                 at: directory,
                 withIntermediateDirectories: true
             )
+            addTeardownBlock {
+                do {
+                    try FileManager.default.removeItem(at: directory)
+                } catch {
+                    XCTFail(
+                        "RAGKit could not remove a temporary Core Data vector index test directory at \(directory.path). \(error.localizedDescription)",
+                        file: file,
+                        line: line
+                    )
+                }
+            }
         } catch {
             XCTFail(
                 "RAGKit could not create a temporary Core Data vector index test directory. \(error.localizedDescription)",
