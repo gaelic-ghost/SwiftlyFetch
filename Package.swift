@@ -66,6 +66,10 @@ let package = Package(
             dependencies: ["FetchCore"],
             path: "Tests/SwiftlyFetchTestFixtures"
         ),
+        .executableTarget(
+            name: "SwiftlyFetchCorpusAudit",
+            dependencies: ["FetchCore", "FetchKit"]
+        ),
         .testTarget(
             name: "RAGCoreTests",
             dependencies: ["RAGCore"]
