@@ -178,7 +178,7 @@ In Progress
 
 - [x] Refine conventional-search ranking and snippet behavior now that the first SearchKit backend works end to end.
 - [x] Validate the current refinement pass against a broader checked-in fixture corpus with near-miss ranking and longer-body snippet cases.
-- [ ] Validate whether the current refinement pass is enough for ordinary app callers against larger real app corpora.
+- [x] Validate whether the current refinement pass is enough for ordinary app callers against larger real app corpora.
 - [ ] Keep the public `FetchKitLibrary` surface polished as the conventional-search side moves from foundation into quality work.
 
 ### Tickets
@@ -192,10 +192,10 @@ In Progress
 - [x] Add a second checked-in text source for corpus-based tests so fixture coverage is not only Gutenberg-derived.
 - [x] Add a Hugging Face-derived audit micro-corpus that combines short stories, markdown reference records, and line-oriented literary text across the default in-memory and macOS SearchKit-backed paths.
 - [x] Add an opt-in Hugging Face corpus audit lane that downloads bounded Dataset Viewer slices, indexes a larger temporary corpus locally, and reports ranking/snippet checks without making default CI network-dependent.
-- [ ] Audit larger app-like corpus result quality now that field-aware ranking, compact all-term evidence, phrase weighting, truncation cues, multi-term snippets, and field-evidence metadata are in place.
+- [x] Audit larger app-like corpus result quality now that field-aware ranking, compact all-term evidence, phrase weighting, truncation cues, multi-term snippets, and field-evidence metadata are in place.
 - [ ] Keep the persistent `FetchKitLibrary` construction and search API surface under review as real callers exercise the current design.
 - [ ] Explore an opt-in extended snippet surface that can use idle time to precompute short document summaries for larger records, with Apple's [`FoundationModels`](https://developer.apple.com/documentation/foundationmodels) or another local summarization path as the first candidate instead of making foreground full-text search wait on summarization.
-- [ ] Decide whether Core Data-backed test helpers should adopt explicit temporary-directory cleanup or keep relying on unique system temporary directories for short-lived local and CI runs.
+- [x] Decide whether Core Data-backed test helpers should adopt explicit temporary-directory cleanup or keep relying on unique system temporary directories for short-lived local and CI runs.
 
 ### Exit Criteria
 
