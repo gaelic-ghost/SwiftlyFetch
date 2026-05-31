@@ -50,6 +50,25 @@ The fourth fixture pass added a small Hugging Face-derived audit corpus that com
 
 This is still a checked-in micro-corpus rather than a live dataset lane. Its job is to make the current in-memory and SearchKit-backed result-quality tests cover more document shapes before deciding whether a larger local benchmark or opt-in dataset download is worth maintaining.
 
+The first live larger-corpus lane now exists as an opt-in maintainer command:
+
+```bash
+scripts/repo-maintenance/run-huggingface-corpus-audit.sh
+```
+
+That lane runs the `SwiftlyFetchCorpusAudit` executable target. It downloads bounded Dataset Viewer `/rows` slices from the same three Hugging Face families, maps them into temporary `FetchDocumentRecord` values in memory, indexes them through `FetchKitLibrary`, and reports pass/fail checks plus top-hit snippets. It intentionally stays out of default `swift test`, default GitHub CI, and checked-in fixture data because it depends on live network access and Hub dataset availability.
+
+The default slice sizes can be tuned without editing source:
+
+```bash
+HF_CORPUS_AUDIT_TINYSTORIES_LENGTH=80 \
+HF_CORPUS_AUDIT_SIMPLEWIKI_LENGTH=40 \
+HF_CORPUS_AUDIT_POETRY_LENGTH=100 \
+scripts/repo-maintenance/run-huggingface-corpus-audit.sh
+```
+
+The Dataset Viewer `/rows` endpoint caps `length` at 100, so the audit tool also caps each configured slice length at 100. If a private or rate-limited dataset is added later, the lane will use `HF_TOKEN` when present.
+
 ## Hugging Face Dependency Boundary
 
 Do not add a Hugging Face Swift dependency for the default fixture lane yet. The current checked-in fixture keeps CI deterministic and avoids adding a network, token, cache, or package-resolution requirement to ordinary tests.
@@ -70,6 +89,14 @@ curl -s 'https://datasets-server.huggingface.co/splits?dataset=roneneldan/TinySt
 curl -s 'https://datasets-server.huggingface.co/first-rows?dataset=roneneldan/TinyStories&config=default&split=train'
 curl -s 'https://datasets-server.huggingface.co/first-rows?dataset=juno-labs/simple_wikipedia&config=default&split=train'
 curl -s 'https://datasets-server.huggingface.co/first-rows?dataset=biglam/gutenberg-poetry-corpus&config=default&split=train'
+```
+
+The opt-in audit lane uses the same endpoint family with bounded `/rows` slices:
+
+```bash
+curl -s 'https://datasets-server.huggingface.co/rows?dataset=roneneldan/TinyStories&config=default&split=train&offset=0&length=60'
+curl -s 'https://datasets-server.huggingface.co/rows?dataset=juno-labs/simple_wikipedia&config=default&split=train&offset=0&length=30'
+curl -s 'https://datasets-server.huggingface.co/rows?dataset=biglam/gutenberg-poetry-corpus&config=default&split=train&offset=0&length=80'
 ```
 
 Hugging Face documents dataset parquet discovery through the Dataset Viewer service in the [`huggingface_hub` CLI guide](https://huggingface.co/docs/huggingface_hub/guides/cli) and the Dataset Viewer [Parquet conversion guide](https://huggingface.co/docs/dataset-viewer/parquet).
