@@ -69,6 +69,8 @@ scripts/repo-maintenance/run-huggingface-corpus-audit.sh
 
 The Dataset Viewer `/rows` endpoint caps `length` at 100, so the audit tool also caps each configured slice length at 100. If a private or rate-limited dataset is added later, the lane will use `HF_TOKEN` when present.
 
+The first larger bounded run requested the cap of 100 rows from each configured dataset, indexed 209 usable records, and passed all five ranking/snippet probes. See [`huggingface-corpus-audit-findings.md`](huggingface-corpus-audit-findings.md) for the recorded output and maintainer decision.
+
 ## Hugging Face Dependency Boundary
 
 Do not add a Hugging Face Swift dependency for the default fixture lane yet. The current checked-in fixture keeps CI deterministic and avoids adding a network, token, cache, or package-resolution requirement to ordinary tests.
