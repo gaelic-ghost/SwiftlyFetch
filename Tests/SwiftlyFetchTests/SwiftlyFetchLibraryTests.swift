@@ -308,6 +308,9 @@ struct SwiftlyFetchLibraryTests {
     @Test("Persistent facade reopens conventional and semantic state")
     func persistentFacadeReopensConventionalAndSemanticState() async throws {
         let directory = try temporaryDirectory()
+        defer {
+            cleanupTemporaryDirectory(directory)
+        }
 
         do {
             let firstLibrary = try await SwiftlyFetchLibrary.macOSPersistentLibrary(at: directory)
@@ -332,6 +335,9 @@ struct SwiftlyFetchLibraryTests {
     @Test("Core Data semantic retry store reopens pending retries")
     func coreDataSemanticRetryStoreReopensPendingRetries() async throws {
         let directory = try temporaryDirectory()
+        defer {
+            cleanupTemporaryDirectory(directory)
+        }
         let storeURL = directory.appendingPathComponent("SemanticRetries.sqlite")
         let olderDate = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 1, day: 1)))
         let newerDate = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 1, day: 2)))
@@ -492,5 +498,15 @@ private func temporaryDirectory() throws -> URL {
     )
 
     return directory
+}
+
+private func cleanupTemporaryDirectory(_ directory: URL) {
+    do {
+        try FileManager.default.removeItem(at: directory)
+    } catch {
+        Issue.record(
+            "SwiftlyFetch could not remove a temporary test directory at \(directory.path). \(error.localizedDescription)"
+        )
+    }
 }
 #endif
