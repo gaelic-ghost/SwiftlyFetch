@@ -42,6 +42,14 @@ The second fixture pass added a compact-evidence ranking expectation for the def
 
 The third fixture pass moved source-derived records into a shared test fixture target and added TinyStories micro-records. Corpus-based tests now have at least two attributed text sources available: one public-domain Gutenberg-derived source and one synthetic story source.
 
+The fourth fixture pass added a small Hugging Face-derived audit corpus that combines:
+
+- [`roneneldan/TinyStories`](https://huggingface.co/datasets/roneneldan/TinyStories) rows for compact app-note-like narrative records
+- [`juno-labs/simple_wikipedia`](https://huggingface.co/datasets/juno-labs/simple_wikipedia) rows for markdown reference records with headings and title/body overlap
+- [`biglam/gutenberg-poetry-corpus`](https://huggingface.co/datasets/biglam/gutenberg-poetry-corpus) rows for dense line-oriented literary text
+
+This is still a checked-in micro-corpus rather than a live dataset lane. Its job is to make the current in-memory and SearchKit-backed result-quality tests cover more document shapes before deciding whether a larger local benchmark or opt-in dataset download is worth maintaining.
+
 ## Hugging Face Dependency Boundary
 
 Do not add a Hugging Face Swift dependency for the default fixture lane yet. The current checked-in fixture keeps CI deterministic and avoids adding a network, token, cache, or package-resolution requirement to ordinary tests.
@@ -60,6 +68,8 @@ curl -s 'https://datasets-server.huggingface.co/rows?dataset=zkeown/gutenberg-co
 curl -s 'https://datasets-server.huggingface.co/rows?dataset=zkeown/gutenberg-corpus&config=chapters&split=train&offset=1&length=3'
 curl -s 'https://datasets-server.huggingface.co/splits?dataset=roneneldan/TinyStories'
 curl -s 'https://datasets-server.huggingface.co/first-rows?dataset=roneneldan/TinyStories&config=default&split=train'
+curl -s 'https://datasets-server.huggingface.co/first-rows?dataset=juno-labs/simple_wikipedia&config=default&split=train'
+curl -s 'https://datasets-server.huggingface.co/first-rows?dataset=biglam/gutenberg-poetry-corpus&config=default&split=train'
 ```
 
 Hugging Face documents dataset parquet discovery through the Dataset Viewer service in the [`huggingface_hub` CLI guide](https://huggingface.co/docs/huggingface_hub/guides/cli) and the Dataset Viewer [Parquet conversion guide](https://huggingface.co/docs/dataset-viewer/parquet).
