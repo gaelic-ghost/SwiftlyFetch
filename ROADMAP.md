@@ -193,6 +193,7 @@ In Progress
 - [ ] Audit larger app-like corpus result quality now that field-aware ranking, compact all-term evidence, phrase weighting, truncation cues, multi-term snippets, and field-evidence metadata are in place.
 - [ ] Keep the persistent `FetchKitLibrary` construction and search API surface under review as real callers exercise the current design.
 - [ ] Explore an opt-in extended snippet surface that can use idle time to precompute short document summaries for larger records, with Apple's [`FoundationModels`](https://developer.apple.com/documentation/foundationmodels) or another local summarization path as the first candidate instead of making foreground full-text search wait on summarization.
+- [ ] Decide whether Core Data-backed test helpers should adopt explicit temporary-directory cleanup or keep relying on unique system temporary directories for short-lived local and CI runs.
 
 ### Exit Criteria
 
@@ -225,6 +226,9 @@ In Progress
 - [x] Plan the first `SwiftlyFetch` umbrella facade in maintainer docs.
 - [x] Add a narrow bridge from `FetchDocumentRecord` to `RAGCore.Document`.
 - [x] Add an umbrella ingestion surface only after the semantic persisted index is stable.
+- [ ] Decide whether the remaining Core Data vector-index XCTest coverage should migrate to Swift Testing now that the current XCTest path is stable.
+- [ ] Decide whether `KnowledgeBase.hashingDefault(dimension:)` should keep its current `async throws` shape for API consistency or become a synchronous non-throwing convenience in a future API polish pass.
+- [ ] Decide when to optimize `CoreDataVectorIndex.search` beyond the current pragmatic v1 in-memory ranking path, such as by using Core Data fetch batching, predicate pre-filtering, or a future ANN-backed query path.
 
 ### Exit Criteria
 
