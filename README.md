@@ -175,9 +175,11 @@ let results = try await library.search("apple guide")
 let firstResult = results.first
 let matchedFields = firstResult?.matchedFields
 let snippetField = firstResult?.snippetField
+try await library.removeDocuments(withIDs: ["guide"])
 ```
 
 `matchedFields` identifies every indexed field that contributed to a search result. `snippetField` identifies the field used to build the returned snippet. Simple result lists can show why a result appeared immediately, while richer UIs can render title evidence differently from body evidence.
+Mutation results report the affected document IDs, including `removeAllDocuments()`, so app code can update local UI state without re-deriving which records changed.
 
 On macOS, the persistent conventional-search surface is now also shaped around one library storage location instead of separate store and index URLs:
 

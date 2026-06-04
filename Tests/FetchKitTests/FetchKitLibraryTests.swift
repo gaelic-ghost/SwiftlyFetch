@@ -58,7 +58,7 @@ struct FetchKitLibraryTests {
         let index = RecordingFetchIndex()
         let library = FetchKitLibrary(documentStore: store, index: index)
 
-        let result = try await library.removeDocuments(["doc-apple", "doc-orange"])
+        let result = try await library.removeDocuments(withIDs: ["doc-apple", "doc-orange"])
 
         let removedIDs = await store.removedDocumentIDs
         let appliedChangesets = await index.appliedChangesets
@@ -67,6 +67,31 @@ struct FetchKitLibraryTests {
         #expect(removedIDs == ["doc-apple", "doc-orange"])
         #expect(appliedChangesets.count == 1)
         #expect(appliedChangesets[0].removedDocumentIDs == ["doc-apple", "doc-orange"])
+    }
+
+    @Test("FetchKitLibrary remove all returns affected document IDs")
+    func fetchKitLibraryRemoveAllReturnsAffectedDocumentIDs() async throws {
+        let library = FetchKitLibrary()
+        try await library.addDocuments([
+            FetchDocumentRecord(
+                id: "doc-apple",
+                title: "Apple Guide",
+                body: "Apples are bright and crisp."
+            ),
+            FetchDocumentRecord(
+                id: "doc-orange",
+                title: "Orange Guide",
+                body: "Oranges are bright and tart."
+            ),
+        ])
+
+        let result = try await library.removeAllDocuments()
+        let searchResults = try await library.search("bright", fields: [.body], limit: 5)
+
+        #expect(Set(result.documentIDs) == Set(["doc-apple", "doc-orange"]))
+        #expect(result.count == 2)
+        #expect(!result.isEmpty)
+        #expect(searchResults.isEmpty)
     }
 
     @Test("FetchKitLibrary search convenience builds queries and delegates to the index")
@@ -226,6 +251,8 @@ struct FetchKitLibraryTests {
             Issue.record("Expected FetchKitLibrary to surface an index sync error.")
         } catch let error as FetchKitLibrary.IndexSyncError {
             #expect(error.pendingIndexSync.changeset.upsertedDocuments == [record.indexDocument])
+            #expect(error.errorDescription?.contains("sync remains queued for retry") == true)
+            #expect(error.errorDescription?.contains("doc-apple") == true)
         } catch {
             Issue.record("Expected FetchKitLibrary.IndexSyncError but received \(String(describing: error)).")
         }
@@ -261,6 +288,7 @@ struct FetchKitLibraryTests {
         let appliedChangesets = await retryingIndex.appliedChangesets
 
         #expect(retryResult.count == 1)
+        #expect(!retryResult.isEmpty)
         #expect(retryResult.affectedDocumentIDs == ["doc-apple"])
         #expect(pendingSyncsAfterRetry.isEmpty)
         #expect(appliedChangesets.count == 1)
