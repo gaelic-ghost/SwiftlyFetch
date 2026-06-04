@@ -1,13 +1,20 @@
+import Foundation
 import FetchCore
 
 public actor FetchKitLibrary {
-    public struct IndexSyncError: Error, Sendable {
+    public struct IndexSyncError: Error, LocalizedError, Sendable {
         public let pendingIndexSync: FetchPendingIndexSync
         public let underlyingErrorDescription: String
 
         public init(pendingIndexSync: FetchPendingIndexSync, underlyingError: Error) {
             self.pendingIndexSync = pendingIndexSync
             self.underlyingErrorDescription = String(describing: underlyingError)
+        }
+
+        public var errorDescription: String? {
+            let affectedDocumentIDs = pendingIndexSync.affectedDocumentIDs.map(\.rawValue)
+            let affectedSummary = affectedDocumentIDs.isEmpty ? "none" : affectedDocumentIDs.joined(separator: ", ")
+            return "FetchKit could not apply pending index sync \(pendingIndexSync.id.rawValue) after the corpus store write succeeded; the sync remains queued for retry. Affected documents: \(affectedSummary). Underlying error: \(underlyingErrorDescription)."
         }
     }
 
@@ -25,6 +32,10 @@ public actor FetchKitLibrary {
 
         public var count: Int {
             completedSyncIDs.count
+        }
+
+        public var isEmpty: Bool {
+            completedSyncIDs.isEmpty
         }
     }
 
@@ -51,6 +62,10 @@ public actor FetchKitLibrary {
 
         public var count: Int {
             documentIDs.count
+        }
+
+        public var isEmpty: Bool {
+            documentIDs.isEmpty
         }
     }
 
@@ -103,11 +118,11 @@ public actor FetchKitLibrary {
 
     @discardableResult
     public func removeDocument(withID id: FetchDocumentID) async throws -> BatchResult {
-        try await removeDocuments([id])
+        try await removeDocuments(withIDs: [id])
     }
 
     @discardableResult
-    public func removeDocuments(_ ids: [FetchDocumentID]) async throws -> BatchResult {
+    public func removeDocuments(withIDs ids: [FetchDocumentID]) async throws -> BatchResult {
         guard !ids.isEmpty else {
             return BatchResult(documentIDs: [])
         }
@@ -117,9 +132,11 @@ public actor FetchKitLibrary {
         return BatchResult(documentIDs: mutation.affectedDocumentIDs)
     }
 
-    public func removeAllDocuments() async throws {
+    @discardableResult
+    public func removeAllDocuments() async throws -> BatchResult {
         let mutation = try await documentStore.removeAllDocuments()
         try await applyIndexingChanges(for: mutation)
+        return BatchResult(documentIDs: mutation.affectedDocumentIDs)
     }
 
     public func search(_ query: FetchSearchQuery) async throws -> [FetchSearchResult] {

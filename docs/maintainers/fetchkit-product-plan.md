@@ -86,6 +86,8 @@ Current status:
 - the default in-memory all-term ranker now gives a small compactness boost to tighter evidence, so a focused passage can rank ahead of a scattered near-miss when both documents satisfy the same query terms
 - title-only hits intentionally keep a title snippet, and `FetchSearchResult` now reports `matchedFields` plus `snippetField` so consumers can distinguish title evidence from body evidence without losing the simple "why did this result appear?" explanation
 - the first checked-in fixture corpus now covers both the default in-memory index path and the macOS SearchKit-backed path, using a tiny attributed Project Gutenberg sample from Hugging Face plus small synthetic near-miss and longer-body records instead of making CI download a live dataset
+- the larger live Hugging Face audit pass requested the current cap from each configured dataset, indexed 209 usable documents, and found no ranking or snippet redesign work that should block the v1 conventional-search refinement milestone
+- the `FetchKitLibrary` caller surface now keeps batch removal explicit with `removeDocuments(withIDs:)`, returns affected document IDs from `removeAllDocuments()`, exposes empty-result checks on small mutation/retry result types, and gives index-sync failures a localized message that explains the store write succeeded while the index sync remains queued
 - the CI investigation on GitHub-hosted macOS found that the Core Data-backed store path could abort under Swift Testing with `Incorrect actor executor assumption`, even after global test parallelism was disabled
 - that investigation surfaced two store-shape fixes worth keeping regardless of the runner: the durable Core Data store should use a private-queue background context instead of `viewContext`, and it should use Core Data's async `perform` API directly instead of manually bridging context work through checked continuations
 - the Core Data-backed store coverage now lives on XCTest rather than Swift Testing so the package keeps the newer test surface where it is stable while reserving the older runner for framework-heavy Core Data verification
@@ -159,12 +161,11 @@ That pass landed:
 - the stored-record to index changeset boundary
 - the first macOS SearchKit-backed implementation path
 
-The next work is refinement, not first architecture:
+The next work is no longer conventional-search refinement. That v1 pass is now a settled foundation for the umbrella package:
 
-- keep the persistent `FetchKitLibrary` surface polished as real callers exercise it
 - keep the SearchKit-backed path inside ordinary validation unless a future framework regression forces it back out
-- use larger app corpora to decide whether the current ranking, snippet, and result-evidence heuristics are already enough for ordinary callers now that the checked-in fixture corpus covers title evidence, body evidence, near misses, and longer-body snippets
-- explore opt-in extended snippets later as background summary metadata for larger documents, not as work that foreground full-text search has to perform before returning results
+- move the next product-building work toward the `SwiftlyFetch` umbrella facade and one-corpus ingestion flow
+- explore opt-in extended snippets later only if real caller corpora show that foreground snippets are not enough; treat background summaries as a future derived-metadata feature, not as work that foreground full-text search has to perform before returning results
 
 ## First Core Data Entity Shape
 
