@@ -126,15 +126,15 @@ ensure_branch_release_context() {
 run_version_bump() {
   release_version="${RELEASE_TAG#v}"
   version_bump_script="$SELF_DIR/version-bump.sh"
-  version_bump_subject="release: bump versions for $RELEASE_TAG"
+  head_subject="$(git -C "$REPO_ROOT" log -1 --format=%s 2>/dev/null || true)"
 
   if [ "$skip_version_bump" = "true" ]; then
     log "Skipping repo version bump because --skip-version-bump was requested."
     return 0
   fi
 
-  if git -C "$REPO_ROOT" log --format=%s "$base_branch"..HEAD | grep -Fxq "$version_bump_subject"; then
-    log "Version bump commit for $RELEASE_TAG is already on this branch; continuing the release resume path."
+  if [ "$head_subject" = "release: bump versions for $RELEASE_TAG" ]; then
+    log "Version bump commit for $RELEASE_TAG is already at HEAD; continuing the release resume path."
     return 0
   fi
 
@@ -287,8 +287,8 @@ wait_for_initial_pr_checks() {
   log "Waiting up to ${timeout_seconds}s for GitHub to report initial checks on PR #$pr_number."
 
   while :; do
-    last_state="$(gh pr view "$pr_number" --json statusCheckRollup --jq '[.statusCheckRollup[]? | .name + ":" + ((.status // .state // .conclusion // "") | ascii_downcase)] | join(", ")' 2>/dev/null || printf 'no checks reported')"
-    check_count="$(gh pr view "$pr_number" --json statusCheckRollup --jq '(.statusCheckRollup // []) | length' 2>/dev/null || printf '0')"
+    last_state="$(gh pr checks "$pr_number" --json name,state,workflow --jq 'map(.name + ":" + .state) | join(", ")' 2>/dev/null || printf 'no checks reported')"
+    check_count="$(gh pr checks "$pr_number" --json name,state,workflow --jq 'length' 2>/dev/null || printf '0')"
     case "$check_count" in
       ''|*[!0-9]*)
         check_count="0"
@@ -349,7 +349,7 @@ check_pr_comments() {
   wait_for_pr_review_state "$pr_number"
 
   review_decision="$(gh pr view "$pr_number" --json reviewDecision --jq '.reviewDecision // ""')"
-  comment_count="$(gh pr view "$pr_number" --json comments,reviews --jq '([.comments[]?, (.reviews[]? | select(.state == "COMMENTED" or ((.body // "") | length > 0)))] | length)')"
+  comment_count="$(gh pr view "$pr_number" --json comments,reviews --jq '([.comments[]?, (.reviews[]? | select(.state == "COMMENTED"))] | length)')"
 
   if [ "$review_decision" = "CHANGES_REQUESTED" ]; then
     gh pr view "$pr_number" --comments
@@ -398,18 +398,23 @@ create_github_release() {
   fi
 
   if [ "$REPO_MAINTENANCE_DRY_RUN" = "true" ]; then
-    log "Would create a GitHub release for $RELEASE_TAG with gh release create --verify-tag."
+    prerelease_flag="$(github_release_create_prerelease_flag "$RELEASE_TAG")"
+    log "Would create a GitHub release for $RELEASE_TAG with gh release create --verify-tag${prerelease_flag:+ $prerelease_flag}."
     return 0
   fi
 
   if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+    verify_github_release_prerelease_metadata "$RELEASE_TAG"
     log "GitHub release $RELEASE_TAG already exists."
     return 0
   fi
 
-  gh release create "$RELEASE_TAG" --verify-tag --generate-notes
+  prerelease_flag="$(github_release_create_prerelease_flag "$RELEASE_TAG")"
+  # shellcheck disable=SC2086
+  gh release create "$RELEASE_TAG" --verify-tag --generate-notes $prerelease_flag
   log "Created GitHub release $RELEASE_TAG."
   wait_for_github_release "$RELEASE_TAG"
+  verify_github_release_prerelease_metadata "$RELEASE_TAG"
 }
 
 cleanup_merged_branches() {
